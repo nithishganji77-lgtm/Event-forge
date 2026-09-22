@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+@theme {
+  /* Editorial SaaS palette — one accent, used sparingly (CTAs, active states, status, links). */
+  --color-bg: #F4F1EA;
+  --color-bg-secondary: #E9E5DC;
+  --color-text: #111111;
+  --color-border: #D4D0C8;
+  --color-accent: #FF5A1F;
+  --color-accent-foreground: #F4F1EA;
+  /* Chart marks specifically (recharts fill/stroke) — validated via the dataviz skill's
+     validate_palette.js against the OKLCH lightness band per mode (light: 0.43-0.77, dark:
+     0.48-0.67). --color-accent itself isn't swapped: that band applies to chart marks, not
+     general UI elements like buttons/badges. */
+  --chart-accent: #FF5A1F;
+
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Type scale from the design brief. */
+  --text-hero: clamp(4rem, 9vw, 9rem);
+  --text-hero--line-height: 0.95;
+  --text-section: clamp(3rem, 6vw, 6rem);
+  --text-section--line-height: 1;
+  --text-dashboard: clamp(2rem, 2.4vw, 3rem);
+  --text-dashboard--line-height: 1.1;
+  --text-meta: 12px;
+  --text-meta--letter-spacing: 0.08em;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #111111;
+    --color-bg-secondary: #1B1A17;
+    --color-text: #F4F1EA;
+    --color-border: #34322C;
+    --color-accent: #FF5A1F;
+    --color-accent-foreground: #111111;
+    --chart-accent: #E5500F;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #111111;
+  --color-bg-secondary: #1B1A17;
+  --color-text: #F4F1EA;
+  --color-border: #34322C;
+  --color-accent: #FF5A1F;
+  --color-accent-foreground: #111111;
+  --chart-accent: #E5500F;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+.text-meta {
+  font-size: var(--text-meta);
+  letter-spacing: var(--text-meta--letter-spacing);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

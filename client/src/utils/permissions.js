@@ -1,0 +1,50 @@
+// UX-only mirror of server/src/constants/permissions.js — the backend remains the source of
+// truth for every actual authorization decision. Keep these two files in sync by hand.
+export const PERMISSIONS = Object.freeze({
+  EVENT_CREATE: 'EVENT_CREATE',
+  EVENT_READ: 'EVENT_READ',
+  EVENT_UPDATE: 'EVENT_UPDATE',
+  EVENT_DELETE: 'EVENT_DELETE',
+  EVENT_PUBLISH: 'EVENT_PUBLISH',
+  REGISTRATION_MANAGE: 'REGISTRATION_MANAGE',
+
+  MEMBER_CREATE: 'MEMBER_CREATE',
+  MEMBER_READ: 'MEMBER_READ',
+  MEMBER_UPDATE: 'MEMBER_UPDATE',
+  MEMBER_DELETE: 'MEMBER_DELETE',
+
+  ANALYTICS_READ: 'ANALYTICS_READ',
+  AUDIT_READ: 'AUDIT_READ',
+
+  ORGANIZATION_UPDATE: 'ORGANIZATION_UPDATE',
+  ORGANIZATION_DELETE: 'ORGANIZATION_DELETE',
+});
+
+const PERMISSION_VALUES = Object.values(PERMISSIONS);
+
+export const ROLES = Object.freeze({
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  ORG_ADMIN: 'ORG_ADMIN',
+  ORGANIZER: 'ORGANIZER',
+  EMPLOYEE: 'EMPLOYEE',
+});
+
+export const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
+  [ROLES.SUPER_ADMIN]: PERMISSION_VALUES,
+  [ROLES.ORG_ADMIN]: PERMISSION_VALUES.filter((p) => p !== PERMISSIONS.ORGANIZATION_DELETE),
+  [ROLES.ORGANIZER]: [
+    PERMISSIONS.EVENT_CREATE,
+    PERMISSIONS.EVENT_READ,
+    PERMISSIONS.EVENT_UPDATE,
+    PERMISSIONS.EVENT_PUBLISH,
+    PERMISSIONS.REGISTRATION_MANAGE,
+    PERMISSIONS.MEMBER_READ,
+    PERMISSIONS.ANALYTICS_READ,
+  ],
+  [ROLES.EMPLOYEE]: [PERMISSIONS.EVENT_READ, PERMISSIONS.MEMBER_READ],
+});
+
+export function getEffectivePermissions(role, extraPermissions = []) {
+  const base = DEFAULT_ROLE_PERMISSIONS[role] ?? [];
+  return new Set([...base, ...(extraPermissions || [])]);
+}
