@@ -249,6 +249,28 @@ via Rollup's default splitting — no manual `vite.config.js` chunk tuning neede
   coercion with `z.enum(['true','false']).transform(v => v === 'true')`, which only recognizes the
   literal string `"true"`. Worth checking for this same pattern before adding any other boolean
   query param in a later phase.
+- **`lottie-react`'s imperative handle is a separate `lottieRef` prop, not the standard `ref`**:
+  passing the ref as `ref` compiled without error but crashed the entire app under
+  `prefers-reduced-motion: reduce` (`TypeError: lottieRef.current?.stop is not a function`,
+  swallowed by React Router's default error boundary into a generic "Unexpected Application
+  Error!" on every route). Root-caused by reading the library's compiled source: the installed
+  3.x rewrite wires `useImperativeHandle` to a named `lottieRef` prop, destructured separately
+  from the forwarded `ref` (which instead forwards to the rendered DOM element). Fixed by renaming
+  the prop in `Spinner.jsx`.
+- **jsdom has no `<canvas>` 2D context, and `lottie-web` touches one at import time**: crashed
+  every Vitest file that mounted `Spinner` even indirectly (route guards' loading state, the event
+  wizard's Organizers step) with `TypeError: Cannot set properties of null (setting 'fillStyle')`.
+  Installing the native `canvas` package just for tests wasn't worth it for a component that's
+  fully stubbed anyway. Fixed with a global `vi.mock('lottie-react', ...)` in `client/tests/
+  setup.js`, same category of fix as isolating `OrgLayoutRoute`'s test from `DashboardLayout`'s
+  internals.
+- **A real `.env`'s live `VITE_GOOGLE_CLIENT_ID` leaking into frontend tests**: `LoginForm`
+  renders `GoogleAuthButton` whenever the client ID is set, which it is in this project's real
+  (untracked, live-credentialed) `.env` — crashed with "must be used within GoogleOAuthProvider"
+  since the test renders `LoginForm` standalone. Same category as the backend suite's
+  `RESEND_API_KEY` dotenv-leak fix: don't let real third-party config bleed into tests. Fixed with
+  `client/.env.test` blanking the var, so Vite's mode-based env loading makes tests run as if
+  Google Sign-In isn't configured.
 - **React 19 StrictMode's dev-only double-mount looks like a bug in a naive test, isn't one**:
   verifying `Modal`'s new focus-return-on-close behavior, a Playwright check that captured a
   button element reference right as it first appeared, then compared it after a round trip through
@@ -289,7 +311,36 @@ via Rollup's default splitting — no manual `vite.config.js` chunk tuning neede
   every prior phase's golden path (this phase touches foundational shared components, so
   regression coverage was broader than usual). No app bugs found — one investigation (see Known
   Issues) resolved as a test-timing artifact from React StrictMode, not a defect.
-- **Phase 7 (testing, security, production config, polish)** — not started. See the plan file for
-  its detailed design.
+- **Phase 7 (testing, security, production config, polish)** — complete and verified. Backend:
+  `jest` + `supertest` + `mongodb-memory-server`, 8 files / 52 tests covering auth, the RBAC
+  permission matrix (including the ownership-bypass-isn't-permission-based case), event lifecycle
+  guard rails, registration/waitlist (including a direct-Mongo `E11000` proof the `{event,user}`
+  index is non-partial), pagination, and named regressions for 3 previously-documented bugs.
+  Frontend: `vitest` + `@testing-library/react` + `msw`, 8 files / 32 tests covering
+  `RequirePermission`, the client/server permission-matrix drift guard, `LoginForm`, `ProtectedRoute`/
+  `GuestRoute`, `OrgLayoutRoute`'s redirects, the axios 401→refresh→retry interceptor (including
+  single-flight concurrent 401s), the 5-step `EventWizard` (per-step validation and the Phase-3
+  stale-event-id regression), and `RegisterButton`'s full branch matrix — MSW intercepts at the
+  network layer so the real interceptor runs under test, not a mock. `toSkipLimit` (dead since
+  Phase 2) is now wired into all 6 list services. Production-readiness fixes: CORS now checks a
+  comma-splittable `clientOrigins` allowlist via a function (was a static single-origin string);
+  cookie `sameSite` is `isProduction ? 'none' : 'lax'` (was hardcoded `'lax'`, which would've
+  silently blocked the auth cookie on any cross-site production deployment); stale `PORT`/
+  `SERVER_BASE_URL` zod defaults (5000→4000) fixed; `DEADLINE_REMINDER_CRON`/
+  `_WINDOW_HOURS` documented in `.env.example`. Both fixes verified live (not just read), including
+  against a throwaway `NODE_ENV=production` instance on a scratch DB. README restructured (real
+  status, "Running tests", Atlas/Cloudinary/production-deployment walkthroughs) and given a logo.
+  The `security-review` skill ran against the full baseline-vs-Phase-7 diff and returned zero
+  findings — the new CORS allowlist and the relaxed cookie `sameSite` were specifically checked
+  together for a bypass and confirmed to compensate for each other correctly across the current
+  route table (all mutations are `POST`/`PATCH`/`DELETE`, none `GET`). Company logo (`client/
+  public/logo-mark.png`, cropped from a supplied source PNG) and a Lottie loading-spinner animation
+  (`client/src/assets/loading.json` via `lottie-react`'s `LottieLight`, reduced-motion-aware) were
+  also added this phase — see Known Issues above for two real bugs each of those surfaced.
+
+**Deferred, not yet started:** a dedicated UI visual-design pass — the current design was flagged
+by the user as "too generic," explicitly saved for after Phase 7. Needs a fresh go-ahead before
+starting. Pushing the git history to the configured `origin` remote (`nithishganji77-lgtm/
+Event-forge`) has also not been requested — nothing has been pushed yet.
 
 Demo login: `ava@eventforge.dev` / `Demo@1234` (from `npm run seed`).
