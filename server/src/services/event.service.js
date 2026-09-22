@@ -5,7 +5,7 @@ import { OrganizationMember } from '../models/OrganizationMember.js';
 import { MEMBER_STATUS } from '../constants/roles.js';
 import { EVENT_STATUS, REGISTRATION_STATUS } from '../constants/eventStatus.js';
 import { computeDisplayStatus, statusFilterToQuery } from '../utils/eventStatus.js';
-import { escapeRegex } from '../utils/paginate.js';
+import { escapeRegex, toSkipLimit } from '../utils/paginate.js';
 import { ApiError } from '../utils/ApiError.js';
 
 export async function generateEventSlug(organizationId, title) {
@@ -73,11 +73,12 @@ export async function listEvents(organizationId, { page, limit, search, category
   }
   if (status) Object.assign(filter, statusFilterToQuery(status));
 
+  const { skip, limit: take } = toSkipLimit({ page, limit });
   const [events, total] = await Promise.all([
     Event.find(filter)
       .sort({ startDate: 1 })
-      .skip((page - 1) * limit)
-      .limit(limit),
+      .skip(skip)
+      .limit(take),
     Event.countDocuments(filter),
   ]);
 

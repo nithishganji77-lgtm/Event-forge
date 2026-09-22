@@ -1,7 +1,7 @@
 import { OrganizationMember } from '../models/OrganizationMember.js';
 import { User } from '../models/User.js';
 import { ROLES, MEMBER_STATUS } from '../constants/roles.js';
-import { escapeRegex } from '../utils/paginate.js';
+import { escapeRegex, toSkipLimit } from '../utils/paginate.js';
 import { ApiError } from '../utils/ApiError.js';
 
 export async function listMembers(organizationId, { page, limit, search, role, status }) {
@@ -17,12 +17,13 @@ export async function listMembers(organizationId, { page, limit, search, role, s
     filter.user = { $in: users.map((u) => u._id) };
   }
 
+  const { skip, limit: take } = toSkipLimit({ page, limit });
   const [data, total] = await Promise.all([
     OrganizationMember.find(filter)
       .populate('user', 'name email avatar isActive')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
+      .skip(skip)
+      .limit(take)
       .lean(),
     OrganizationMember.countDocuments(filter),
   ]);

@@ -1,6 +1,6 @@
 import { AuditLog } from '../models/AuditLog.js';
 import { User } from '../models/User.js';
-import { escapeRegex } from '../utils/paginate.js';
+import { escapeRegex, toSkipLimit } from '../utils/paginate.js';
 
 // Deliberately minimal — no search/filter/pagination. Phase 5 owns the full audit-log browser at
 // GET /organizations/:orgId/audit-logs; this is a fixed-size feed for one dashboard widget, mounted
@@ -34,12 +34,13 @@ export async function listAuditLogs(organizationId, { page, limit, search, actio
     filter.actor = { $in: users.map((u) => u._id) };
   }
 
+  const { skip, limit: take } = toSkipLimit({ page, limit });
   const [data, total] = await Promise.all([
     AuditLog.find(filter)
       .populate('actor', 'name email avatar')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
+      .skip(skip)
+      .limit(take)
       .lean(),
     AuditLog.countDocuments(filter),
   ]);

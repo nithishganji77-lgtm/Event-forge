@@ -6,6 +6,7 @@ import { REGISTRATION_STATUS } from '../constants/eventStatus.js';
 import { NOTIFICATION_TYPES } from '../constants/notificationTypes.js';
 import { logger } from '../config/logger.js';
 import { ApiError } from '../utils/ApiError.js';
+import { toSkipLimit } from '../utils/paginate.js';
 
 // Same defensive posture as audit.service.js: writeAuditLog — never throws, so a notification
 // failure never fails the action that triggered it. Batches via insertMany for the fan-out cases
@@ -177,12 +178,13 @@ export async function listMyNotifications(userId, { page, limit, unreadOnly }) {
   const filter = { recipient: userId };
   if (unreadOnly) filter.read = false;
 
+  const { skip, limit: take } = toSkipLimit({ page, limit });
   const [data, total] = await Promise.all([
     Notification.find(filter)
       .populate('organization', 'name slug')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
+      .skip(skip)
+      .limit(take)
       .lean(),
     Notification.countDocuments(filter),
   ]);

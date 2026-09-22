@@ -3,6 +3,7 @@ import { EVENT_STATUS, REGISTRATION_STATUS, ATTENDANCE_STATUS } from '../constan
 import { computeDisplayStatus } from '../utils/eventStatus.js';
 import { attachStats } from './event.service.js';
 import { ApiError } from '../utils/ApiError.js';
+import { toSkipLimit } from '../utils/paginate.js';
 
 // Built against EventRegistration's non-partial {event,user} unique index: cancel-then-re-register
 // must reuse/update the same document, never insert a second one.
@@ -86,12 +87,13 @@ export async function listRegistrations(eventId, { page, limit, status }) {
   const filter = { event: eventId };
   if (status) filter.status = status;
 
+  const { skip, limit: take } = toSkipLimit({ page, limit });
   const [data, total] = await Promise.all([
     EventRegistration.find(filter)
       .populate('user', 'name email avatar')
       .sort({ registeredAt: 1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
+      .skip(skip)
+      .limit(take)
       .lean(),
     EventRegistration.countDocuments(filter),
   ]);

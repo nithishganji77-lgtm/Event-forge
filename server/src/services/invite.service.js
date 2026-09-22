@@ -102,12 +102,13 @@ export async function listInvites(organizationId, { page, limit, status }) {
   const filter = { organization: organizationId };
   if (status) filter.status = status;
 
+  const { skip, limit: take } = toSkipLimit({ page, limit });
   const [data, total] = await Promise.all([
     Invite.find(filter)
       .populate('invitedBy', 'name email')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
+      .skip(skip)
+      .limit(take)
       .lean(),
     Invite.countDocuments(filter),
   ]);
