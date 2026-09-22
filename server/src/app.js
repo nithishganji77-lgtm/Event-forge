@@ -6,7 +6,7 @@ import compression from 'compression';
 import pinoHttp from 'pino-http';
 import path from 'node:path';
 
-import { config } from './config/env.js';
+import { config, clientOrigins } from './config/env.js';
 import { logger } from './config/logger.js';
 import { sanitizeData } from './middleware/sanitizeData.js';
 import { apiLimiter } from './middleware/rateLimiters.js';
@@ -22,7 +22,17 @@ app.use(
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
-app.use(cors({ origin: config.CLIENT_URL, credentials: true }));
+app.use(
+  cors({
+    // No Origin header (same-origin requests, curl, health checks) is let through — only a
+    // present-but-mismatched Origin is rejected.
+    origin: (origin, callback) => {
+      if (!origin || clientOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
 app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));

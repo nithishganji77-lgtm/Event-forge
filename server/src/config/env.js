@@ -3,10 +3,10 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().default(5000),
+  PORT: z.coerce.number().default(4000),
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
   CLIENT_URL: z.string().min(1, 'CLIENT_URL is required'),
-  SERVER_BASE_URL: z.string().default('http://localhost:5000'),
+  SERVER_BASE_URL: z.string().default('http://localhost:4000'),
 
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET must be at least 16 characters'),
@@ -69,3 +69,8 @@ export const smtpConfigured = Boolean(config.SMTP_HOST && config.SMTP_USER && co
 export const resendConfigured = Boolean(config.RESEND_API_KEY);
 
 export const googleAuthConfigured = Boolean(config.GOOGLE_CLIENT_ID);
+
+// CLIENT_URL stays a single string (backward-compatible with every existing .env — a one-value
+// CLIENT_URL behaves identically to before); comma-separate it to allow more than one origin, e.g.
+// a deployed frontend plus a local dev client hitting the same API.
+export const clientOrigins = config.CLIENT_URL.split(',').map((s) => s.trim()).filter(Boolean);

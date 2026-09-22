@@ -6,7 +6,11 @@ function baseCookieOptions() {
   return {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
+    // 'none' requires 'Secure', which isProduction already guarantees above — safe only because
+    // both are keyed off the same boolean. Needed whenever frontend/backend end up on different
+    // registrable domains in production (e.g. a Vercel frontend + a Render backend); 'lax' would
+    // otherwise silently block the cookie on those cross-site requests.
+    sameSite: isProduction ? 'none' : 'lax',
     domain: config.COOKIE_DOMAIN || undefined,
   };
 }
