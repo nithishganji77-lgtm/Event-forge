@@ -50,8 +50,14 @@
   --chart-accent: #E5500F;
 }
 
-* {
-  border-color: var(--color-border);
+/* Must live in a layer. This reset sat unlayered, and an unlayered rule beats every layered one
+   regardless of specificity, so it overrode all Tailwind border-color utilities (the accent
+   active-nav bar, hover borders, invalid-input borders, outline buttons were silently dead).
+   In @layer base it is the default border color and utilities win, as authored. */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
 }
 
 html {
