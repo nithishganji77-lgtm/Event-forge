@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Menu, LogOut } from 'lucide-react';
@@ -21,6 +21,16 @@ export function DashboardLayout() {
   const location = useLocation();
   const reduceMotion = useReducedMotion();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Opts the whole logged-in app into the rounded look (see --ef-radius in globals.css). Set on
+  // <html>, not this layout's own element, so portalled UI (Modal, the mobile drawer) inherits it;
+  // a layout effect so the first paint is already rounded.
+  useLayoutEffect(() => {
+    document.documentElement.dataset.shell = 'app';
+    return () => {
+      delete document.documentElement.dataset.shell;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-[240px_1fr] bg-(--color-bg) text-(--color-text)">

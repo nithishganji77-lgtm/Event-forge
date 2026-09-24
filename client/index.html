@@ -6,6 +6,13 @@
     <link rel="preload" as="font" type="font/woff2" href="/fonts/inter-latin-variable.woff2" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EventForge</title>
+    <script>
+      // Re-apply a saved light/dark choice before first paint (lib/theme.js owns it afterwards).
+      try {
+        var saved = localStorage.getItem('ef-theme');
+        if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

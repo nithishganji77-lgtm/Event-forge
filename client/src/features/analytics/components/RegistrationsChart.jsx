@@ -1,5 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getChartAccentColor } from '../utils/chartTheme.js';
+import { useResolvedTheme } from '../../../hooks/useTheme.js';
 
 // Single series (one metric — registration count — compared across event identities), so no
 // legend box per the dataviz skill (title already says what's plotted). Bar spec: <=24px thick,
@@ -9,7 +10,7 @@ export function RegistrationsChart({ mostPopularEvents }) {
     title: p.event?.title || 'Untitled',
     registrations: p.registeredCount,
   }));
-  const accent = getChartAccentColor();
+  const accent = getChartAccentColor(useResolvedTheme());
 
   return (
     <div className="border border-(--color-border) p-5">

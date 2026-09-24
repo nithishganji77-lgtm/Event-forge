@@ -26,7 +26,7 @@ export const Button = forwardRef(function Button(
       ref={ref}
       {...(isButtonEl ? { disabled: disabled || loading } : {})}
       className={cn(
-        'inline-flex items-center justify-center gap-2 font-medium tracking-tight transition-colors duration-150',
+        'inline-flex items-center justify-center gap-2 font-medium tracking-tight transition-colors duration-150 rounded-(--ef-radius-sm)',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)',
         VARIANTS[variant],

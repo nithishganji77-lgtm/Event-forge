@@ -28,7 +28,7 @@ export function Modal({ open, onClose, title, children }) {
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="w-full max-w-lg border border-(--color-border) bg-(--color-bg) p-6"
+            className="w-full max-w-lg border border-(--color-border) bg-(--color-surface) rounded-(--ef-radius) p-6"
             initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: reduceMotion ? 0 : 12 }}

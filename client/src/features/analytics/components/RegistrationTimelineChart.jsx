@@ -1,12 +1,13 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { EmptyState } from '../../../components/ui/EmptyState.jsx';
 import { getChartAccentColor } from '../utils/chartTheme.js';
+import { useResolvedTheme } from '../../../hooks/useTheme.js';
 
 export function RegistrationTimelineChart({ timeline }) {
+  const accent = getChartAccentColor(useResolvedTheme()); // before the early return: hook order
   if (!timeline || timeline.length === 0) {
     return <EmptyState title="No registrations yet" />;
   }
-  const accent = getChartAccentColor();
 
   return (
     <div className="border border-(--color-border) p-5">

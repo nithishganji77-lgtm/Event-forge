@@ -9,6 +9,11 @@
   --color-border: #D4D0C8;
   --color-accent: #FF5A1F;
   --color-accent-foreground: #F4F1EA;
+  /* Depth inside the logged-in app: cards sit on a surface slightly lighter than the page,
+     the sidebar slightly darker. Landing/auth don't use these. */
+  --color-surface: #FBF9F5;
+  --color-surface-hover: #FFFFFF;
+  --color-sidebar: #EFEBE2;
   /* Chart marks specifically (recharts fill/stroke) — validated via the dataviz skill's
      validate_palette.js against the OKLCH lightness band per mode (light: 0.43-0.77, dark:
      0.48-0.67). --color-accent itself isn't swapped: that band applies to chart marks, not
@@ -36,7 +41,11 @@
     --color-border: #34322C;
     --color-accent: #FF5A1F;
     --color-accent-foreground: #111111;
+    --color-surface: #171614;
+    --color-surface-hover: #1E1D1A;
+    --color-sidebar: #0D0D0D;
     --chart-accent: #E5500F;
+    color-scheme: dark;
   }
 }
 
@@ -47,7 +56,29 @@
   --color-border: #34322C;
   --color-accent: #FF5A1F;
   --color-accent-foreground: #111111;
+  --color-surface: #171614;
+  --color-surface-hover: #1E1D1A;
+  --color-sidebar: #0D0D0D;
   --chart-accent: #E5500F;
+  color-scheme: dark;
+}
+
+:root {
+  color-scheme: light;
+}
+
+/* Corner radius is opt-in per surface. Everything is square by default (landing, auth, the
+   editorial look); DashboardLayout sets data-shell="app" on <html> while mounted, which rounds
+   the logged-in app. It's on <html>, not the layout element, so portalled UI (Modal, the mobile
+   drawer, dropdowns) inherits it. Named --ef-* because Tailwind reserves the --radius-* namespace. */
+:root {
+  --ef-radius: 0px;
+  --ef-radius-sm: 0px;
+}
+
+:root[data-shell="app"] {
+  --ef-radius: 10px;
+  --ef-radius-sm: 6px;
 }
 
 /* Must live in a layer. This reset sat unlayered, and an unlayered rule beats every layered one

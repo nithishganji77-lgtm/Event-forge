@@ -9,7 +9,7 @@ export const Select = forwardRef(function Select({ className, invalid, children,
         ref={ref}
         aria-invalid={invalid || undefined}
         className={cn(
-          'w-full appearance-none border bg-transparent px-4 py-2.5 pr-9 text-sm',
+          'w-full appearance-none border bg-transparent px-4 py-2.5 pr-9 text-sm rounded-(--ef-radius-sm)',
           'focus:outline-none focus:border-(--color-accent)',
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)',
           invalid ? 'border-(--color-accent)' : 'border-(--color-border)',
