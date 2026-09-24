@@ -122,12 +122,20 @@ export function DropdownMenu({ trigger, children, label, align = 'end', panelCla
   );
 }
 
+// Text colour is deliberately not in here: cn() is plain clsx (no tailwind-merge), so two competing
+// text-* classes would both be emitted and stylesheet order, not class order, would pick the winner.
+// The item picks exactly one of the two below.
 const ITEM_CLASSES = cn(
   'w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left rounded-(--ef-radius-sm) cursor-pointer',
-  'text-(--color-text)/80 hover:text-(--color-text) hover:bg-(--color-bg-secondary) focus:bg-(--color-bg-secondary)',
+  'hover:bg-(--color-bg-secondary) focus:bg-(--color-bg-secondary)',
   'focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--color-accent)',
   'aria-disabled:opacity-40 aria-disabled:cursor-not-allowed'
 );
+const ITEM_TEXT = 'text-(--color-text)/80 hover:text-(--color-text)';
+// The brand orange itself is under 4.5:1 on the light surface for 14px text, so a destructive
+// label uses the accent pulled toward the text colour (about 5:1 in light, higher in dark).
+const ITEM_TEXT_DESTRUCTIVE =
+  'text-[color-mix(in_oklab,var(--color-accent)_70%,var(--color-text))] hover:text-[color-mix(in_oklab,var(--color-accent)_70%,var(--color-text))]';
 
 // `as` lets an item be a router <Link> (navigation) instead of a button (action). Selecting a link
 // item closes the menu without stealing focus back (the page is changing); selecting an action
@@ -152,7 +160,7 @@ export function DropdownMenuItem({
       tabIndex={-1}
       {...(isButton ? { type: 'button' } : {})}
       aria-disabled={disabled || undefined}
-      className={cn(ITEM_CLASSES, destructive && 'text-(--color-accent) hover:text-(--color-accent)', className)}
+      className={cn(ITEM_CLASSES, destructive ? ITEM_TEXT_DESTRUCTIVE : ITEM_TEXT, className)}
       onClick={(event) => {
         if (disabled) {
           event.preventDefault();

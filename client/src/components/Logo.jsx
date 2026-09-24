@@ -8,6 +8,7 @@ export function Logo({ className = '', iconOnly = false }) {
         src="/logo-mark.png"
         alt={iconOnly ? 'EventForge' : ''}
         className={iconOnly ? 'size-5 shrink-0' : 'size-4 shrink-0'}
+        style={{ filter: 'var(--logo-filter)' }}
       />
       {!iconOnly && <span className="text-meta">EVENTFORGE</span>}
     </span>

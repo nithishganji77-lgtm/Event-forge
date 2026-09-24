@@ -137,4 +137,23 @@ describe('DropdownMenu', () => {
     await user.click(trigger);
     expect(await screen.findByRole('menuitemradio', { name: 'Light' })).toHaveAttribute('aria-checked', 'true');
   });
+  // cn() is plain clsx, so a destructive item that also kept the neutral text classes would emit
+  // two competing text-* utilities and let stylesheet order pick the colour (it rendered neutral).
+  it('gives a destructive item exactly one text colour, not the neutral one plus an override', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <DropdownMenu label="Actions" trigger={({ triggerProps }) => <button {...triggerProps}>Open</button>}>
+          <DropdownMenuItem>Neutral</DropdownMenuItem>
+          <DropdownMenuItem destructive>Danger</DropdownMenuItem>
+        </DropdownMenu>
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    const neutral = await screen.findByRole('menuitem', { name: 'Neutral' });
+    const danger = screen.getByRole('menuitem', { name: 'Danger' });
+    expect(neutral.className).toContain('text-(--color-text)/80');
+    expect(danger.className).not.toContain('text-(--color-text)/80');
+    expect(danger.className).toContain('color-mix');
+  });
 });

@@ -45,6 +45,7 @@
     --color-surface-hover: #1E1D1A;
     --color-sidebar: #0D0D0D;
     --chart-accent: #E5500F;
+    --logo-filter: invert(1);
     color-scheme: dark;
   }
 }
@@ -60,11 +61,14 @@
   --color-surface-hover: #1E1D1A;
   --color-sidebar: #0D0D0D;
   --chart-accent: #E5500F;
+  --logo-filter: invert(1);
   color-scheme: dark;
 }
 
 :root {
   color-scheme: light;
+  /* The logo mark is a black PNG; on a dark background it is inverted to the light ink. */
+  --logo-filter: none;
 }
 
 /* Corner radius is opt-in per surface. Everything is square by default (landing, auth, the
