@@ -1,15 +1,22 @@
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '../components/ui/Button.jsx';
 import { Logo } from '../components/Logo.jsx';
 import { ROUTES } from '../utils/constants.js';
+import { Hero } from './landing/Hero.jsx';
+import { OurWorkSection } from './landing/OurWorkSection.jsx';
+import { StatementSection } from './landing/StatementSection.jsx';
+import { ProblemSection } from './landing/ProblemSection.jsx';
+import { ChangesSection } from './landing/ChangesSection.jsx';
+import { RolesSection } from './landing/RolesSection.jsx';
+import { CtaBand } from './landing/CtaBand.jsx';
+import { LandingFooter } from './landing/LandingFooter.jsx';
 
-// Placeholder landing page establishing the visual identity for Phase 1. The full editorial,
-// scroll-cinematic landing experience (problem/platform/preview/how-it-works/RBAC/final-CTA
-// sections) is substantial standalone work, scoped for a later, dedicated pass.
+// Editorial, scroll-cinematic landing page: six numbered sections (01/HERO through 06/WHY US),
+// each a deliberately different visual beat — huge type, then quiet text + a horizontal graphic,
+// then whitespace + one large statement, then dense numbered blocks, then alternating editorial
+// rows (not a repeated card grid), then a full-bleed dark section — closing on an accent CTA band
+// and an oversized footer wordmark.
 export function LandingPage() {
-  const reduceMotion = useReducedMotion();
-
   return (
     <div className="min-h-screen bg-(--color-bg) text-(--color-text)">
       <nav className="flex items-center justify-between px-6 sm:px-12 py-6 border-b border-(--color-border)">
@@ -24,35 +31,17 @@ export function LandingPage() {
         </div>
       </nav>
 
-      <main className="px-6 sm:px-12 py-24 sm:py-32">
-        <motion.h1
-          initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduceMotion ? 0 : 0.6 }}
-          className="font-semibold leading-[0.95] mb-8"
-          style={{ fontSize: 'clamp(3rem, 9vw, 9rem)' }}
-        >
-          EVENTS,
-          <br />
-          ENGINEERED
-          <br />
-          <span className="text-(--color-accent)">FOR PEOPLE.</span>
-        </motion.h1>
-
-        <p className="max-w-md text-lg text-(--color-text)/70 mb-10">
-          Plan, publish and coordinate corporate events from one intelligent workspace.
-        </p>
-
-        <div className="flex flex-wrap gap-4">
-          <Button as={Link} to={ROUTES.REGISTER} variant="accent" size="lg">
-            BUILD YOUR EVENT →
-          </Button>
-        </div>
+      <main>
+        <Hero />
+        <OurWorkSection />
+        <StatementSection />
+        <ProblemSection />
+        <ChangesSection />
+        <RolesSection />
+        <CtaBand />
       </main>
 
-      <footer className="px-6 sm:px-12 py-8 border-t border-(--color-border) text-meta text-(--color-text)/50">
-        © 2026 EventForge
-      </footer>
+      <LandingFooter />
     </div>
   );
 }
