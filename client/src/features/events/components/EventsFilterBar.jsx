@@ -2,9 +2,11 @@ import { SearchInput } from '../../../components/ui/SearchInput.jsx';
 import { Select } from '../../../components/ui/Select.jsx';
 import { EVENT_CATEGORIES } from '../schemas/event.schema.js';
 
-const STATUS_OPTIONS = [
+// Exported so EventsList can validate a ?status= deep link against the same list.
+export const STATUS_OPTIONS = [
   ['', 'All statuses'],
   ['DRAFT', 'Draft'],
+  ['UPCOMING', 'Upcoming'],
   ['REGISTRATION_OPEN', 'Registration Open'],
   ['REGISTRATION_CLOSED', 'Registration Closed'],
   ['ONGOING', 'Ongoing'],

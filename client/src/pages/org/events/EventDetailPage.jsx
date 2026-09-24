@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Calendar, MapPin, Users, Trash2 } from 'lucide-react';
 import { useEvent } from '../../../features/events/hooks/useEvent.js';
 import { EventStatusBadge } from '../../../features/events/components/EventStatusBadge.jsx';
@@ -14,20 +14,19 @@ import { Button } from '../../../components/ui/Button.jsx';
 import { Tabs, tabId, panelId } from '../../../components/ui/Tabs.jsx';
 import { Spinner } from '../../../components/ui/Spinner.jsx';
 import { Alert } from '../../../components/ui/Alert.jsx';
-import { useAuth } from '../../../hooks/useAuth.js';
 import { useActiveOrganization } from '../../../hooks/useActiveOrganization.js';
-import { PERMISSIONS, ROLES } from '../../../utils/permissions.js';
+import { useEventPermissions } from '../../../hooks/useEventPermissions.js';
 import { ROUTES } from '../../../utils/constants.js';
 import { extractErrorMessage } from '../../../lib/axios.js';
 import { formatEventWhen } from '../../../features/events/utils/eventTime.js';
 
 export function EventDetailPage() {
   const { eventId } = useParams();
-  const { user } = useAuth();
-  const { organizationId, organizationSlug, role, permissions } = useActiveOrganization();
+  const { organizationId, organizationSlug } = useActiveOrganization();
   const { data: event, isLoading, isError, error } = useEvent(eventId);
+  const perms = useEventPermissions(event);
   const publishEvent = usePublishEvent(organizationId, eventId);
-  const [tab, setTab] = useState('about');
+  const [searchParams, setSearchParams] = useSearchParams();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
@@ -35,13 +34,7 @@ export function EventDetailPage() {
   if (isLoading) return <Spinner />;
   if (isError) return <Alert tone="error">{extractErrorMessage(error, 'Could not load event')}</Alert>;
 
-  const isAdmin = role === ROLES.SUPER_ADMIN || role === ROLES.ORG_ADMIN;
-  const isOwner = event.createdBy === user?.id || event.organizers?.includes(user?.id);
-  const canManage = (isAdmin || isOwner) && permissions.has(PERMISSIONS.EVENT_UPDATE);
-  const canPublish = (isAdmin || isOwner) && permissions.has(PERMISSIONS.EVENT_PUBLISH) && event.status === 'DRAFT';
-  const canDelete = (isAdmin || isOwner) && permissions.has(PERMISSIONS.EVENT_DELETE);
-  const canViewAttendees = (isAdmin || isOwner) && permissions.has(PERMISSIONS.REGISTRATION_MANAGE);
-  const canViewAnalytics = (isAdmin || isOwner) && permissions.has(PERMISSIONS.ANALYTICS_READ);
+  const { canManage, canPublish, canDelete, canViewAttendees, canViewAnalytics, canDuplicate, canCancel } = perms;
 
   const tabs = [
     { key: 'about', label: 'ABOUT' },
@@ -51,11 +44,27 @@ export function EventDetailPage() {
     ...(canViewAnalytics ? [{ key: 'analytics', label: 'ANALYTICS' }] : []),
   ];
 
+  // The active tab lives in the URL (?tab=attendees) so a card menu / dashboard link can land on it
+  // and a reload keeps it. A tab the caller can't see (or a typo) falls back to About.
+  const requestedTab = searchParams.get('tab');
+  const tab = tabs.some((t) => t.key === requestedTab) ? requestedTab : 'about';
+  function setTab(key) {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+        if (key === 'about') next.delete('tab');
+        else next.set('tab', key);
+        return next;
+      },
+      { replace: true }
+    );
+  }
+
   return (
     <div className="max-w-3xl">
       <div className="flex items-start justify-between gap-4 mb-2">
         <p className="text-meta text-(--color-text)/50">EVENT</p>
-        <EventStatusBadge status={event.displayStatus} />
+        <EventStatusBadge event={event} />
       </div>
       <h1 className="text-3xl font-semibold leading-tight mb-4">{event.title}</h1>
 
@@ -88,12 +97,12 @@ export function EventDetailPage() {
             Publish
           </Button>
         )}
-        {canManage && (
+        {canDuplicate && (
           <Button variant="outline" size="sm" onClick={() => setDuplicateOpen(true)}>
             Duplicate
           </Button>
         )}
-        {canManage && event.status !== 'CANCELLED' && (
+        {canCancel && (
           <Button variant="outline" size="sm" onClick={() => setCancelOpen(true)}>
             Cancel
           </Button>
