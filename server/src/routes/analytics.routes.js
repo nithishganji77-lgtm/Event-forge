@@ -4,7 +4,7 @@ import { orgContext } from '../middleware/orgContext.js';
 import { requirePermission } from '../middleware/authorize.js';
 import { validate } from '../middleware/validate.js';
 import { PERMISSIONS } from '../constants/permissions.js';
-import { analyticsOrgParamsSchema } from '../validators/analytics.validator.js';
+import { analyticsOrgParamsSchema, dashboardSummaryQuerySchema } from '../validators/analytics.validator.js';
 
 const router = Router({ mergeParams: true });
 
@@ -14,6 +14,14 @@ router.get(
   orgContext,
   requirePermission(PERMISSIONS.ANALYTICS_READ),
   analyticsController.getOrgAnalyticsHandler
+);
+
+router.get(
+  '/dashboard',
+  validate({ params: analyticsOrgParamsSchema, query: dashboardSummaryQuerySchema }),
+  orgContext,
+  requirePermission(PERMISSIONS.ANALYTICS_READ),
+  analyticsController.getDashboardSummaryHandler
 );
 
 export default router;

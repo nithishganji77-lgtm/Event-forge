@@ -27,3 +27,11 @@ export async function writeAuditLog({
     logger.error({ err, action, entityType }, 'Failed to write audit log');
   }
 }
+
+// Denormalised onto event- and registration-related audit rows at write time. Registration rows
+// point at a registration id (not the event), and the feed needs a readable "registered for
+// <title>" without a read-time join — writing the title here also survives the event being
+// renamed or deleted later.
+export function eventAuditMetadata(event, extra = {}) {
+  return { eventId: event._id, eventTitle: event.title, ...extra };
+}

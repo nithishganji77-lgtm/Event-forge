@@ -33,5 +33,7 @@ const eventRegistrationSchema = new mongoose.Schema(
 
 eventRegistrationSchema.index({ event: 1, user: 1 }, { unique: true });
 eventRegistrationSchema.index({ event: 1, status: 1 });
+// Dashboard "new sign-ups this/last month" windows on registeredAt within an organization.
+eventRegistrationSchema.index({ organization: 1, registeredAt: 1 });
 
 export const EventRegistration = mongoose.model('EventRegistration', eventRegistrationSchema);

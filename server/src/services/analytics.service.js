@@ -1,6 +1,9 @@
 import { Event } from '../models/Event.js';
 import { EventRegistration } from '../models/EventRegistration.js';
-import { REGISTRATION_STATUS, ATTENDANCE_STATUS } from '../constants/eventStatus.js';
+import { Invite } from '../models/Invite.js';
+import { EVENT_STATUS, REGISTRATION_STATUS, ATTENDANCE_STATUS } from '../constants/eventStatus.js';
+import { INVITE_STATUS } from '../constants/inviteStatus.js';
+import { monthBoundsInZone } from '../utils/eventTime.js';
 
 // "Participation by Department" is deliberately not computed here — no `department` field exists
 // anywhere on User/OrganizationMember. If one is ever added, it would slot in as another
@@ -65,6 +68,70 @@ export async function getOrgAnalytics(organizationId, scopeToUserId) {
     attendanceRate: attendanceRateFrom(attended, noShow),
     cancellationRate: totalRegDocs === 0 ? null : cancelledCount / totalRegDocs,
     mostPopularEvents,
+  };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Numbers for the manager dashboard's KPI row. Same scoping as getOrgAnalytics: null
+// scopeToUserId = admin (org-wide), otherwise only events the user created or organizes.
+//
+// Every figure is a real count — nothing here is a comparison against a snapshot that doesn't
+// exist. "Upcoming events" is a stock, so it gets no month-over-month delta; the two figures that
+// do (events per month, new sign-ups per month) are flows that can be recomputed for any window.
+// `now` is injectable so month boundaries can be tested against a fixed clock.
+export async function getDashboardSummary(
+  organizationId,
+  { scopeToUserId, canManageInvites, timeZone, now = new Date() }
+) {
+  const eventIds = await resolveScopedEventIds(organizationId, scopeToUserId);
+  const eventFilter = eventIds ? { _id: { $in: eventIds } } : { organization: organizationId };
+  const regFilter = eventIds ? { event: { $in: eventIds } } : { organization: organizationId };
+  const published = { ...eventFilter, status: EVENT_STATUS.PUBLISHED };
+
+  const { lastStart, thisStart, nextStart } = monthBoundsInZone(now, timeZone);
+  const weekEnd = new Date(now.getTime() + 7 * DAY_MS);
+  const registered = { ...regFilter, status: REGISTRATION_STATUS.REGISTERED };
+
+  const [
+    upcomingEvents,
+    startingNext7Days,
+    drafts,
+    eventsThisMonth,
+    eventsLastMonth,
+    registeredAttendees,
+    newRegistrationsThisMonth,
+    newRegistrationsLastMonth,
+    pendingInvites,
+  ] = await Promise.all([
+    Event.countDocuments({ ...published, startsAt: { $gt: now } }),
+    Event.countDocuments({ ...published, startsAt: { $gt: now, $lte: weekEnd } }),
+    Event.countDocuments({ ...eventFilter, status: EVENT_STATUS.DRAFT }),
+    Event.countDocuments({ ...published, startsAt: { $gte: thisStart, $lt: nextStart } }),
+    Event.countDocuments({ ...published, startsAt: { $gte: lastStart, $lt: thisStart } }),
+    EventRegistration.countDocuments(registered),
+    EventRegistration.countDocuments({ ...registered, registeredAt: { $gte: thisStart, $lt: nextStart } }),
+    EventRegistration.countDocuments({ ...registered, registeredAt: { $gte: lastStart, $lt: thisStart } }),
+    // Invites are an org-level admin concern: null (not 0) when the caller can't manage them, so
+    // the client can tell "hidden from you" apart from "none pending".
+    canManageInvites
+      ? Invite.countDocuments({
+          organization: organizationId,
+          status: INVITE_STATUS.PENDING,
+          expiresAt: { $gt: now },
+        })
+      : null,
+  ]);
+
+  return {
+    upcomingEvents,
+    startingNext7Days,
+    registeredAttendees,
+    newRegistrationsThisMonth,
+    newRegistrationsLastMonth,
+    eventsThisMonth,
+    eventsLastMonth,
+    pendingActions: { total: drafts + (pendingInvites ?? 0), drafts, pendingInvites },
   };
 }
 

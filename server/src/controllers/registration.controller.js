@@ -5,7 +5,7 @@ import {
   markAttendance,
 } from '../services/registration.service.js';
 import { REGISTRATION_STATUS } from '../constants/eventStatus.js';
-import { writeAuditLog } from '../services/audit.service.js';
+import { writeAuditLog, eventAuditMetadata } from '../services/audit.service.js';
 import {
   notifyRegistrationConfirmed,
   notifyRegistrationWaitlisted,
@@ -27,6 +27,7 @@ export const registerHandler = asyncHandler(async (req, res) => {
         : AUDIT_ACTIONS.REGISTRATION_CREATED,
     entityType: 'EventRegistration',
     entityId: registration._id,
+    metadata: eventAuditMetadata(req.event),
     req,
   });
 
@@ -55,6 +56,7 @@ export const cancelRegistrationHandler = asyncHandler(async (req, res) => {
     action: AUDIT_ACTIONS.REGISTRATION_CANCELLED,
     entityType: 'EventRegistration',
     entityId: cancelled._id,
+    metadata: eventAuditMetadata(req.event),
     req,
   });
   await notifyRegistrationCancelled(cancelled, req.event);
@@ -66,7 +68,7 @@ export const cancelRegistrationHandler = asyncHandler(async (req, res) => {
       action: AUDIT_ACTIONS.REGISTRATION_CREATED,
       entityType: 'EventRegistration',
       entityId: promoted._id,
-      metadata: { promotedFromWaitlist: true },
+      metadata: eventAuditMetadata(req.event, { promotedFromWaitlist: true }),
       req,
     });
     await notifyRegistrationConfirmed(promoted, req.event, { promotedFromWaitlist: true });
@@ -91,7 +93,7 @@ export const markAttendanceHandler = asyncHandler(async (req, res) => {
     action: AUDIT_ACTIONS.ATTENDANCE_MARKED,
     entityType: 'EventRegistration',
     entityId: registration._id,
-    metadata: { attendanceStatus },
+    metadata: eventAuditMetadata(req.event, { attendanceStatus }),
     req,
   });
 

@@ -10,7 +10,7 @@ import {
   setCoverImage,
 } from '../services/event.service.js';
 import { storage } from '../services/storage/index.js';
-import { writeAuditLog } from '../services/audit.service.js';
+import { writeAuditLog, eventAuditMetadata } from '../services/audit.service.js';
 import {
   notifyEventPublished,
   notifyEventUpdated,
@@ -40,6 +40,7 @@ export const createEventHandler = asyncHandler(async (req, res) => {
     action: AUDIT_ACTIONS.EVENT_CREATED,
     entityType: 'Event',
     entityId: event._id,
+    metadata: eventAuditMetadata(event),
     req,
   });
 
@@ -60,7 +61,7 @@ export const updateEventHandler = asyncHandler(async (req, res) => {
     action: AUDIT_ACTIONS.EVENT_UPDATED,
     entityType: 'Event',
     entityId: event._id,
-    metadata: { fields: Object.keys(req.body) },
+    metadata: eventAuditMetadata(event, { fields: Object.keys(req.body) }),
     req,
   });
   await notifyEventUpdated(event, req.user._id);
@@ -77,6 +78,7 @@ export const deleteEventHandler = asyncHandler(async (req, res) => {
     action: AUDIT_ACTIONS.EVENT_DELETED,
     entityType: 'Event',
     entityId: eventId,
+    metadata: eventAuditMetadata(req.event),
     req,
   });
 
@@ -93,6 +95,7 @@ export const publishEventHandler = asyncHandler(async (req, res) => {
     action: AUDIT_ACTIONS.EVENT_PUBLISHED,
     entityType: 'Event',
     entityId: event._id,
+    metadata: eventAuditMetadata(event),
     req,
   });
   await notifyEventPublished(event, req.user._id);
@@ -109,6 +112,7 @@ export const cancelEventHandler = asyncHandler(async (req, res) => {
     action: AUDIT_ACTIONS.EVENT_CANCELLED,
     entityType: 'Event',
     entityId: event._id,
+    metadata: eventAuditMetadata(event),
     req,
   });
   await notifyEventCancelled(event, req.user._id);
@@ -125,7 +129,7 @@ export const duplicateEventHandler = asyncHandler(async (req, res) => {
     action: AUDIT_ACTIONS.EVENT_DUPLICATED,
     entityType: 'Event',
     entityId: duplicate._id,
-    metadata: { sourceEventId: req.event._id },
+    metadata: eventAuditMetadata(duplicate, { sourceEventId: req.event._id }),
     req,
   });
 
@@ -151,7 +155,7 @@ export const uploadCoverImageHandler = asyncHandler(async (req, res) => {
     action: AUDIT_ACTIONS.EVENT_UPDATED,
     entityType: 'Event',
     entityId: event._id,
-    metadata: { field: 'coverImage' },
+    metadata: eventAuditMetadata(event, { field: 'coverImage' }),
     req,
   });
 

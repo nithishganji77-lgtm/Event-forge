@@ -3,6 +3,7 @@ import {
   computeEventInstants,
   isValidTimeZone,
   isValidTimeOfDay,
+  monthBoundsInZone,
 } from '../src/utils/eventTime.js';
 
 const iso = (ms) => new Date(ms).toISOString();
@@ -141,5 +142,35 @@ describe('computeEventInstants', () => {
       registrationDeadline: null,
     });
     expect(r.startsAt.toISOString()).toBe('2026-09-24T12:30:00.000Z');
+  });
+});
+
+describe('monthBoundsInZone', () => {
+  const iso = (d) => d.toISOString();
+
+  it("returns the caller's own calendar-month boundaries (Asia/Kolkata is UTC+5:30)", () => {
+    const b = monthBoundsInZone(new Date('2026-09-24T10:00:00.000Z'), 'Asia/Kolkata');
+    expect(iso(b.lastStart)).toBe('2026-07-31T18:30:00.000Z'); // 1 Aug 00:00 IST
+    expect(iso(b.thisStart)).toBe('2026-08-31T18:30:00.000Z'); // 1 Sep 00:00 IST
+    expect(iso(b.nextStart)).toBe('2026-09-30T18:30:00.000Z'); // 1 Oct 00:00 IST
+  });
+
+  it('is decided by the zone, not by the UTC date — 23:00Z on the 30th is already October in IST', () => {
+    const utc = monthBoundsInZone(new Date('2026-09-30T23:00:00.000Z'), 'UTC');
+    const ist = monthBoundsInZone(new Date('2026-09-30T23:00:00.000Z'), 'Asia/Kolkata');
+    expect(iso(utc.thisStart)).toBe('2026-09-01T00:00:00.000Z');
+    expect(iso(ist.thisStart)).toBe('2026-09-30T18:30:00.000Z'); // 1 Oct 00:00 IST
+  });
+
+  it('wraps across the year boundary in both directions', () => {
+    const jan = monthBoundsInZone(new Date('2026-01-15T12:00:00.000Z'), 'UTC');
+    expect(iso(jan.lastStart)).toBe('2025-12-01T00:00:00.000Z');
+    const dec = monthBoundsInZone(new Date('2026-12-15T12:00:00.000Z'), 'UTC');
+    expect(iso(dec.nextStart)).toBe('2027-01-01T00:00:00.000Z');
+  });
+
+  it('falls back to UTC for an unknown zone', () => {
+    const b = monthBoundsInZone(new Date('2026-09-24T10:00:00.000Z'), 'Not/AZone');
+    expect(iso(b.thisStart)).toBe('2026-09-01T00:00:00.000Z');
   });
 });

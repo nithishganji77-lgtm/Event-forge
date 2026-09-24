@@ -137,3 +137,21 @@ export function computeEventInstants({
       : null,
   };
 }
+
+// Start instants of last month, this month and next month as they fall in `timeZone` (an unknown
+// zone falls back to UTC). "This month" means the caller's own calendar month — an event that
+// starts at 00:30 IST on the 1st is in that month for an Indian organizer even though it is still
+// the 31st in UTC.
+export function monthBoundsInZone(now, timeZone) {
+  const zone = isValidTimeZone(timeZone) ? timeZone : 'UTC';
+  const parts = getFormatter(zone).formatToParts(now);
+  const year = Number(parts.find((p) => p.type === 'year').value);
+  const month = Number(parts.find((p) => p.type === 'month').value);
+  const startOf = (y, m) => new Date(zonedTimeToUtc({ year: y, month: m, day: 1 }, zone));
+
+  return {
+    lastStart: month === 1 ? startOf(year - 1, 12) : startOf(year, month - 1),
+    thisStart: startOf(year, month),
+    nextStart: month === 12 ? startOf(year + 1, 1) : startOf(year, month + 1),
+  };
+}
