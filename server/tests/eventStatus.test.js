@@ -51,21 +51,59 @@ describe('computeDisplayStatus (pure, no DB)', () => {
   });
 });
 
+describe('computeDisplayStatus uses the real start/end instants, not the calendar date', () => {
+  // An event dated today whose start time is 18:00 (in the event's timezone) — startDate/endDate
+  // are today's UTC midnight, which is what used to make it look ongoing/completed all day.
+  const dateOnlyMidnight = new Date('2026-09-24T00:00:00.000Z');
+  const sameDayEvening = stubEvent({
+    startDate: dateOnlyMidnight,
+    endDate: dateOnlyMidnight,
+    startsAt: new Date('2026-09-24T12:30:00.000Z'), // 18:00 IST
+    endsAt: new Date('2026-09-24T15:00:00.000Z'), // 20:30 IST
+  });
+
+  it('is still open at 10:00 for a 6 PM start the same day', () => {
+    expect(computeDisplayStatus(sameDayEvening, new Date('2026-09-24T04:30:00.000Z'))).toBe('REGISTRATION_OPEN');
+  });
+
+  it('is ONGOING once the start time has passed', () => {
+    expect(computeDisplayStatus(sameDayEvening, new Date('2026-09-24T12:30:00.000Z'))).toBe('ONGOING');
+    expect(computeDisplayStatus(sameDayEvening, new Date('2026-09-24T14:00:00.000Z'))).toBe('ONGOING');
+  });
+
+  it('is COMPLETED only after the end time', () => {
+    expect(computeDisplayStatus(sameDayEvening, new Date('2026-09-24T15:00:00.001Z'))).toBe('COMPLETED');
+  });
+
+  it('closes registration at registrationClosesAt, and prefers it over the date-only deadline', () => {
+    const closesAt = new Date('2026-09-23T18:29:59.999Z'); // end of 23 Sep in IST
+    const event = {
+      ...sameDayEvening,
+      registrationDeadline: new Date('2026-09-23T00:00:00.000Z'), // the old date-only meaning: already past
+      registrationClosesAt: closesAt,
+    };
+    expect(computeDisplayStatus(event, new Date('2026-09-23T12:00:00.000Z'))).toBe('REGISTRATION_OPEN');
+    expect(computeDisplayStatus(event, closesAt)).toBe('REGISTRATION_OPEN'); // boundary is inclusive
+    expect(computeDisplayStatus(event, new Date(closesAt.getTime() + 1))).toBe('REGISTRATION_CLOSED');
+  });
+});
+
 describe('statusFilterToQuery matches computeDisplayStatus (drift guard, live DB)', () => {
   beforeAll(connectTestDb);
   afterEach(clearTestDb);
   afterAll(disconnectTestDb);
 
-  async function makeBackdatedPublishedEvent(organization, owner, overrides) {
-    // publishEvent itself rejects a past startDate, so publish with a valid future date first,
-    // then backdate directly to simulate an event that's now ongoing/completed/etc.
+  // publishEvent rejects a start in the past and a real request can never produce an end before
+  // the start, so build a consistent future window, publish, then move the whole window in one save
+  // to simulate an event that is now ongoing/completed/etc.
+  async function makeBackdatedPublishedEvent(organization, owner, { startDate, endDate, registrationDeadline }) {
     const event = await makeEvent({
       organization,
       createdBy: owner,
-      overrides: { ...overrides, startDate: new Date(Date.now() + HOUR) },
+      overrides: { startDate: new Date(Date.now() + HOUR), endDate: new Date(Date.now() + 2 * HOUR) },
     });
     await publishEvent(event);
-    Object.assign(event, overrides);
+    Object.assign(event, { startDate, endDate, registrationDeadline: registrationDeadline ?? null });
     await event.save();
     return event;
   }
@@ -113,5 +151,63 @@ describe('statusFilterToQuery matches computeDisplayStatus (drift guard, live DB
       const otherIds = cases.filter(([s]) => s !== status).map(([, e]) => e._id.toString());
       for (const otherId of otherIds) expect(matchedIds).not.toContain(otherId);
     }
+  });
+
+  it('UPCOMING covers every published event that has not started (open and closed), and nothing else', async () => {
+    const { organization, owner } = await makeOrg();
+    const real = new Date();
+
+    const draft = await makeEvent({ organization, createdBy: owner });
+    const ongoing = await makeBackdatedPublishedEvent(organization, owner, {
+      startDate: new Date(real.getTime() - HOUR),
+      endDate: new Date(real.getTime() + HOUR),
+    });
+    const completed = await makeBackdatedPublishedEvent(organization, owner, {
+      startDate: new Date(real.getTime() - 3 * HOUR),
+      endDate: new Date(real.getTime() - HOUR),
+    });
+    const open = await makeBackdatedPublishedEvent(organization, owner, {
+      startDate: new Date(real.getTime() + HOUR),
+      endDate: new Date(real.getTime() + 2 * HOUR),
+    });
+    const closed = await makeBackdatedPublishedEvent(organization, owner, {
+      startDate: new Date(real.getTime() + HOUR),
+      endDate: new Date(real.getTime() + 2 * HOUR),
+      registrationDeadline: new Date(real.getTime() - 1),
+    });
+
+    const matched = await Event.find({ organization: organization._id, ...statusFilterToQuery('UPCOMING', real) }).select('_id');
+    const ids = matched.map((e) => e._id.toString()).sort();
+    expect(ids).toEqual([open._id.toString(), closed._id.toString()].sort());
+    for (const excluded of [draft, ongoing, completed]) expect(ids).not.toContain(excluded._id.toString());
+  });
+
+  it('agrees with computeDisplayStatus for an event dated today whose start time is later today', async () => {
+    const { organization, owner } = await makeOrg();
+    const real = new Date();
+    const utcDay = (d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const start = new Date(real.getTime() + 2 * HOUR);
+    const end = new Date(real.getTime() + 3 * HOUR);
+
+    // Picked calendar dates + wall-clock times in UTC, exactly as the wizard would submit them.
+    const event = await makeEvent({
+      organization,
+      createdBy: owner,
+      overrides: {
+        startDate: utcDay(start),
+        endDate: utcDay(end),
+        startTime: start.toISOString().slice(11, 16),
+        endTime: end.toISOString().slice(11, 16),
+        timezone: 'UTC',
+      },
+    });
+    await publishEvent(event);
+
+    const fresh = await Event.findById(event._id);
+    expect(computeDisplayStatus(fresh, real)).toBe('REGISTRATION_OPEN');
+    const matched = await Event.find({ organization: organization._id, ...statusFilterToQuery('REGISTRATION_OPEN', real) }).select('_id');
+    expect(matched.map((e) => e._id.toString())).toContain(event._id.toString());
+    const ongoingMatch = await Event.find({ organization: organization._id, ...statusFilterToQuery('ONGOING', real) }).select('_id');
+    expect(ongoingMatch.map((e) => e._id.toString())).not.toContain(event._id.toString());
   });
 });

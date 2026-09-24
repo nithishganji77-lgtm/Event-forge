@@ -1,8 +1,10 @@
 import { useFormContext } from 'react-hook-form';
 import { FormField } from '../../../../../components/ui/FormField.jsx';
+import { Select } from '../../../../../components/ui/Select.jsx';
+import { timezoneOptionsFor } from '../../../utils/timezones.js';
 
 export function DateVenueStep() {
-  const { register, formState: { errors } } = useFormContext();
+  const { register, watch, formState: { errors } } = useFormContext();
 
   return (
     <div className="space-y-8 max-w-xl">
@@ -15,7 +17,14 @@ export function DateVenueStep() {
           <FormField label="End time" type="time" register={register('endTime')} error={errors.endTime?.message} />
         </div>
         <div className="mt-4">
-          <FormField label="Timezone" register={register('timezone')} error={errors.timezone?.message} />
+          <FormField as={Select} label="Timezone" register={register('timezone')} error={errors.timezone?.message}>
+            {timezoneOptionsFor(watch('timezone')).map((zone) => (
+              <option key={zone.value} value={zone.value}>{zone.label}</option>
+            ))}
+          </FormField>
+          <p className="mt-1.5 text-sm text-(--color-text)/50">
+            Start and end times are read in this timezone, wherever the viewer is.
+          </p>
         </div>
       </div>
 

@@ -61,22 +61,37 @@ export async function createEvent({ organization, data, createdBy }) {
   return Event.create({ ...data, organization, slug, createdBy });
 }
 
-export async function listEvents(organizationId, { page, limit, search, category, status, organizer, dateFrom, dateTo }) {
-  const filter = { organization: organizationId };
-  if (category) filter.category = category;
-  if (organizer) filter.$or = [{ createdBy: organizer }, { organizers: organizer }];
-  if (search) filter.title = new RegExp(escapeRegex(search), 'i');
-  if (dateFrom || dateTo) {
-    filter.startDate = {};
-    if (dateFrom) filter.startDate.$gte = dateFrom;
-    if (dateTo) filter.startDate.$lte = dateTo;
-  }
-  if (status) Object.assign(filter, statusFilterToQuery(status));
+const SORT_DIRECTIONS = { startsAt_asc: 1, startsAt_desc: -1 };
 
+// Every condition is its own `$and` clause so none can overwrite another — the status fragment
+// carries its own keys (and, for REGISTRATION_OPEN, its own `$or`), which used to clobber the
+// organizer `$or` and any date window when merged into one flat object. dateFrom/dateTo stay a
+// calendar-date window on startDate (the UTC-midnight of the picked date); status filters compare
+// startsAt/endsAt, so the two never share a key.
+export async function listEvents(
+  organizationId,
+  { page, limit, search, category, status, organizer, dateFrom, dateTo, sort = 'startsAt_asc' }
+) {
+  const clauses = [{ organization: organizationId }];
+  if (category) clauses.push({ category });
+  if (organizer) clauses.push({ $or: [{ createdBy: organizer }, { organizers: organizer }] });
+  if (search) clauses.push({ title: new RegExp(escapeRegex(search), 'i') });
+  if (dateFrom || dateTo) {
+    const range = {};
+    if (dateFrom) range.$gte = dateFrom;
+    if (dateTo) range.$lte = dateTo;
+    clauses.push({ startDate: range });
+  }
+  if (status) clauses.push(statusFilterToQuery(status));
+  const filter = { $and: clauses };
+
+  // _id tiebreak: same-day events share startDate and can share startsAt, so paging is otherwise
+  // unstable between requests.
+  const direction = SORT_DIRECTIONS[sort] ?? 1;
   const { skip, limit: take } = toSkipLimit({ page, limit });
   const [events, total] = await Promise.all([
     Event.find(filter)
-      .sort({ startDate: 1 })
+      .sort({ startsAt: direction, _id: direction })
       .skip(skip)
       .limit(take),
     Event.countDocuments(filter),
@@ -106,8 +121,10 @@ export async function publishEvent(event) {
   if (event.status === EVENT_STATUS.PUBLISHED) {
     throw ApiError.conflict('This event is already published');
   }
-  if (event.startDate <= new Date()) {
-    throw ApiError.badRequest('Start date must be in the future to publish');
+  // Compares the real start instant (date + time + timezone), so a same-day event that hasn't
+  // started yet can be published. `?? startDate` only covers a not-yet-backfilled legacy row.
+  if ((event.startsAt ?? event.startDate) <= new Date()) {
+    throw ApiError.badRequest('The event must start in the future to publish');
   }
   event.status = EVENT_STATUS.PUBLISHED;
   event.publishedAt = new Date();

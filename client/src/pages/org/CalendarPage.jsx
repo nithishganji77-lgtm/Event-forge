@@ -10,10 +10,10 @@ import { Alert } from '../../components/ui/Alert.jsx';
 import { useActiveOrganization } from '../../hooks/useActiveOrganization.js';
 import { extractErrorMessage } from '../../lib/axios.js';
 
-// Month + Agenda only — Week view is cut deliberately: it needs real hour-of-day layout math, but
-// startTime/endTime are free-text strings with no format contract (Phase 3's own documented
-// simplification), not suitable for pixel-precise grid placement. Agenda already gives the same
-// compact per-day breakdown a Week view would add, from the same data.
+// Month + Agenda only — Week view was cut in Phase 4 because startTime/endTime were free-text
+// strings. They are now validated "HH:mm" wall-clock times (interpreted in event.timezone), so a
+// Week view is feasible if it's ever wanted; Agenda already gives the same compact per-day
+// breakdown from the same data.
 export function CalendarPage() {
   const { organizationId } = useActiveOrganization();
   const [monthDate, setMonthDate] = useState(() => new Date());

@@ -3,9 +3,20 @@ import { config } from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
 import { logger } from './config/logger.js';
 import { startDeadlineReminderJob } from './jobs/deadlineReminder.job.js';
+import { backfillEventTimes } from './services/eventBackfill.service.js';
 
 async function main() {
   await connectDB();
+
+  // Status filters query startsAt/endsAt directly, so events from before those fields existed must
+  // be backfilled before serving. A failure here is logged, not fatal — the API still works, and
+  // the legacy fallbacks keep displayStatus correct for un-backfilled rows.
+  try {
+    const { scanned, updated, failed } = await backfillEventTimes();
+    if (scanned > 0) logger.info({ scanned, updated, failed }, 'Event time backfill complete');
+  } catch (err) {
+    logger.error({ err }, 'Event time backfill failed');
+  }
 
   const deadlineReminderTask = startDeadlineReminderJob();
 

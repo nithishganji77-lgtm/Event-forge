@@ -19,16 +19,7 @@ import { useActiveOrganization } from '../../../hooks/useActiveOrganization.js';
 import { PERMISSIONS, ROLES } from '../../../utils/permissions.js';
 import { ROUTES } from '../../../utils/constants.js';
 import { extractErrorMessage } from '../../../lib/axios.js';
-
-function formatDateTime(dateStr, timeStr) {
-  const date = new Date(dateStr).toLocaleDateString(undefined, {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-  return timeStr ? `${date} · ${timeStr}` : date;
-}
+import { formatEventWhen } from '../../../features/events/utils/eventTime.js';
 
 export function EventDetailPage() {
   const { eventId } = useParams();
@@ -71,7 +62,7 @@ export function EventDetailPage() {
       <div className="flex flex-wrap gap-5 text-sm text-(--color-text)/60 mb-6">
         <span className="flex items-center gap-1.5">
           <Calendar className="size-4" aria-hidden="true" />
-          {formatDateTime(event.startDate, event.startTime)}
+          {formatEventWhen(event, { weekday: true, year: true })}
         </span>
         {event.venue?.name && (
           <span className="flex items-center gap-1.5">

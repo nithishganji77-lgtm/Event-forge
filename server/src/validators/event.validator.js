@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { objectId } from './common.js';
 import { paginationQuerySchema } from '../utils/paginate.js';
-import { EVENT_STATUS_VALUES } from '../constants/eventStatus.js';
+import { EVENT_STATUS_FILTER_VALUES } from '../constants/eventStatus.js';
+import { isValidTimeOfDay, isValidTimeZone } from '../utils/eventTime.js';
 
 export { orgParamsSchema as eventOrgParamsSchema } from './organization.validator.js';
 
@@ -16,9 +17,13 @@ const venueSchema = z
   })
   .optional();
 
+// "HH:mm" 24-hour wall-clock time (what <input type="time"> produces) or '' for "not set".
+const timeOfDay = z.string().trim().refine(isValidTimeOfDay, 'Use a 24-hour HH:mm time');
+
 // Deliberately excludes status/slug/organization/createdBy/publishedAt — zod's default "strip"
 // behavior drops any of those if a client sends them, so status can only ever change through the
-// dedicated publish/cancel endpoints, never a plain create/update body.
+// dedicated publish/cancel endpoints, never a plain create/update body. The same goes for
+// startsAt/endsAt/registrationClosesAt, which the Event model derives itself.
 const eventFields = {
   title: z.string().trim().min(2, 'Title is too short').max(200),
   description: z.string().trim().max(5000).optional(),
@@ -26,9 +31,9 @@ const eventFields = {
   coverImage: z.string().trim().url().optional(),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
-  startTime: z.string().trim().max(20).optional(),
-  endTime: z.string().trim().max(20).optional(),
-  timezone: z.string().trim().max(60).optional(),
+  startTime: timeOfDay.optional(),
+  endTime: timeOfDay.optional(),
+  timezone: z.string().trim().max(60).refine(isValidTimeZone, 'Unknown timezone').optional(),
   venue: venueSchema,
   capacity: z.coerce.number().int().min(1, 'Capacity must be at least 1'),
   registrationDeadline: z.coerce.date().nullable().optional(),
@@ -41,6 +46,13 @@ function withCrossFieldRefines(schema) {
       message: 'End date must be on or after the start date',
       path: ['endDate'],
     })
+    .refine(
+      (data) =>
+        !(data.startDate && data.endDate && data.startTime && data.endTime) ||
+        data.endDate.getTime() !== data.startDate.getTime() ||
+        data.endTime >= data.startTime,
+      { message: 'End time must not be before the start time', path: ['endTime'] }
+    )
     .refine(
       (data) =>
         !(data.registrationDeadline && data.startDate) ||
@@ -58,10 +70,12 @@ export const updateEventSchema = withCrossFieldRefines(z.object(eventFields).par
 export const listEventsQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().max(120).optional(),
   category: z.string().trim().max(60).optional(),
-  status: z.enum(EVENT_STATUS_VALUES).optional(),
+  status: z.enum(EVENT_STATUS_FILTER_VALUES).optional(),
   organizer: objectId.optional(),
+  // Calendar-date window on startDate (the UTC-midnight of the picked date), not on startsAt.
   dateFrom: z.coerce.date().optional(),
   dateTo: z.coerce.date().optional(),
+  sort: z.enum(['startsAt_asc', 'startsAt_desc']).optional(),
 });
 
 export const duplicateEventSchema = z

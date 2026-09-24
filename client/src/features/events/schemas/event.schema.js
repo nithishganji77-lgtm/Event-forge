@@ -1,4 +1,12 @@
 import { z } from 'zod';
+import { isValidTimeZone } from '../utils/eventTime.js';
+
+// "HH:mm" 24-hour (what <input type="time"> produces) or '' for "not set". Mirrors the server.
+const timeOfDay = z
+  .string()
+  .trim()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Enter a valid time')
+  .or(z.literal(''));
 
 const venueSchema = z.object({
   name: z.string().trim().max(200).optional(),
@@ -16,9 +24,14 @@ export const eventFormSchema = z
     category: z.string().trim().max(60).optional(),
     startDate: z.string().min(1, 'Start date is required'),
     endDate: z.string().min(1, 'End date is required'),
-    startTime: z.string().trim().max(20).optional(),
-    endTime: z.string().trim().max(20).optional(),
-    timezone: z.string().trim().max(60).optional(),
+    startTime: timeOfDay.optional(),
+    endTime: timeOfDay.optional(),
+    timezone: z
+      .string()
+      .trim()
+      .max(60)
+      .refine((zone) => zone === '' || isValidTimeZone(zone), 'Pick a valid timezone')
+      .optional(),
     venue: venueSchema.optional(),
     capacity: z.coerce.number().int().min(1, 'Capacity must be at least 1'),
     registrationDeadline: z.string().optional().or(z.literal('')),
@@ -28,6 +41,11 @@ export const eventFormSchema = z
     message: 'End date must be on or after the start date',
     path: ['endDate'],
   })
+  .refine(
+    (data) =>
+      !(data.startTime && data.endTime) || data.endDate !== data.startDate || data.endTime >= data.startTime,
+    { message: 'End time must not be before the start time', path: ['endTime'] }
+  )
   .refine(
     (data) =>
       !data.registrationDeadline || new Date(data.registrationDeadline) <= new Date(data.startDate),

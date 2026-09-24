@@ -5,19 +5,20 @@ import { notifyDeadlineApproaching } from '../services/notification.service.js';
 import { config } from '../config/env.js';
 import { logger } from '../config/logger.js';
 
-// Finds published events whose registration deadline falls within the next N hours and haven't
-// been reminded yet, notifies eligible members, then stamps deadlineReminderSentAt so a later
-// tick doesn't re-notify. Each event is processed in its own try/catch — one bad event must not
-// kill the rest of the tick. No transaction (matches the project's standing no-transactions
-// tradeoff on a standalone Mongo instance) — the only race is a double-send on overlapping ticks,
-// a minor UX annoyance, not a data-integrity concern.
+// Finds published events whose registration closes within the next N hours and haven't been
+// reminded yet, notifies eligible members, then stamps deadlineReminderSentAt so a later tick
+// doesn't re-notify. `registrationClosesAt` is the real closing instant (end of the deadline day in
+// the event's timezone), not the date-only registrationDeadline. Each event is processed in its
+// own try/catch — one bad event must not kill the rest of the tick. No transaction (matches the
+// project's standing no-transactions tradeoff on a standalone Mongo instance) — the only race is a
+// double-send on overlapping ticks, a minor UX annoyance, not a data-integrity concern.
 export async function runDeadlineReminderTick() {
   const now = new Date();
   const windowEnd = new Date(now.getTime() + config.DEADLINE_REMINDER_WINDOW_HOURS * 60 * 60 * 1000);
 
   const events = await Event.find({
     status: EVENT_STATUS.PUBLISHED,
-    registrationDeadline: { $ne: null, $gte: now, $lte: windowEnd },
+    registrationClosesAt: { $ne: null, $gte: now, $lte: windowEnd },
     deadlineReminderSentAt: null,
   });
 

@@ -10,7 +10,9 @@
     "start": "node src/server.js",
     "seed": "node src/seed/seed.js",
     "lint": "eslint src",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
+    "backfill:event-times": "node src/seed/backfillEventTimes.js",
+    "test:tz": "TZ=UTC npm test && TZ=America/Los_Angeles npm test"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
