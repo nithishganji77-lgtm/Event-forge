@@ -27,7 +27,7 @@ export function NotificationPanel({ onClose }) {
     <motion.div
       role="dialog"
       aria-label="Notifications"
-      className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-80 border border-(--color-border) bg-(--color-bg) shadow-sm z-40"
+      className="absolute right-0 top-full mt-1.5 w-[calc(100vw-2rem)] max-w-80 overflow-hidden border border-(--color-border) bg-(--color-surface) rounded-(--ef-radius) shadow-[0_10px_30px_-12px_rgb(0_0_0/0.35)] z-40"
       initial={{ opacity: 0, y: reduceMotion ? 0 : -4 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: reduceMotion ? 0 : -4 }}

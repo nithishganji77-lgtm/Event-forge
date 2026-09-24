@@ -37,13 +37,13 @@ export function NotificationBell() {
         aria-label={count > 0 ? `Notifications, ${count} unread` : 'Notifications'}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="relative text-(--color-text)/60 hover:text-(--color-accent) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
+        className="relative grid size-9 place-items-center rounded-(--ef-radius-sm) text-(--color-text)/60 transition-colors hover:bg-(--color-bg-secondary) hover:text-(--color-text) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
       >
-        <Bell className="size-4" aria-hidden="true" />
+        <Bell className="size-[18px]" aria-hidden="true" />
         {count > 0 && (
           <span
             aria-hidden="true"
-            className="absolute -top-1.5 -right-1.5 min-w-[1rem] h-4 px-1 rounded-full bg-(--color-accent) text-white text-[10px] leading-4 text-center"
+            className="absolute top-0.5 right-0.5 min-w-[1rem] h-4 px-1 rounded-full bg-(--color-accent) text-white text-[10px] leading-4 text-center"
           >
             {count > 9 ? '9+' : count}
           </span>

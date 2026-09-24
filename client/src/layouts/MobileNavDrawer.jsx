@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Logo } from '../components/Logo.jsx';
 import { SidebarNav } from './SidebarNav.jsx';
+import { OrgSwitcher } from '../features/organizations/components/OrgSwitcher.jsx';
 import { useEscapeKey } from '../hooks/useEscapeKey.js';
 import { useFocusTrap } from '../hooks/useFocusTrap.js';
 
@@ -11,6 +12,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap.js';
 // horizontal-slide vs. Modal's centered/width-capped/vertical-slide, genuinely different shapes.
 // What IS shared (Escape-close, Tab-trap, initial-focus, focus-return, portal, motion gating) comes
 // from the same two hooks Modal itself uses, so the only real duplication here is JSX layout.
+// The workspace switcher lives at the top of the drawer because the mobile header no longer has one.
 export function MobileNavDrawer({ open, onClose, organizationSlug }) {
   const drawerRef = useRef(null);
   const reduceMotion = useReducedMotion();
@@ -35,13 +37,13 @@ export function MobileNavDrawer({ open, onClose, organizationSlug }) {
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
-            className="h-full w-72 max-w-[85vw] bg-(--color-bg) border-r border-(--color-border) py-6 flex flex-col"
+            className="h-full w-72 max-w-[85vw] bg-(--color-sidebar) border-r border-(--color-border) py-4 flex flex-col"
             initial={{ x: reduceMotion ? 0 : '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: reduceMotion ? 0 : '-100%' }}
             transition={{ duration: reduceMotion ? 0 : 0.18 }}
           >
-            <div className="flex items-center justify-between px-4 mb-8">
+            <div className="flex items-center justify-between px-4 mb-5">
               <Logo />
               <button
                 onClick={onClose}
@@ -50,6 +52,9 @@ export function MobileNavDrawer({ open, onClose, organizationSlug }) {
               >
                 <X className="size-5" aria-hidden="true" />
               </button>
+            </div>
+            <div className="px-3 mb-5">
+              <OrgSwitcher />
             </div>
             <SidebarNav organizationSlug={organizationSlug} ariaLabel="Mobile navigation" onNavigate={onClose} />
           </motion.div>

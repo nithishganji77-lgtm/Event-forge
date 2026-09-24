@@ -2,12 +2,15 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronsUpDown, Check, Plus } from 'lucide-react';
+import { cn } from '../../../lib/cn.js';
 import { useAuth } from '../../../hooks/useAuth.js';
 import { useActiveOrganization } from '../../../hooks/useActiveOrganization.js';
 import { useEscapeKey } from '../../../hooks/useEscapeKey.js';
 import { ROUTES } from '../../../utils/constants.js';
 
-export function OrgSwitcher() {
+// A workspace card, not a text link: it names the organization you're acting in and makes clear
+// this is where you switch. `collapsed` shrinks it to the initial for the sidebar's icon rail.
+export function OrgSwitcher({ collapsed = false }) {
   const { memberships } = useAuth();
   const { organizationSlug } = useActiveOrganization();
   const navigate = useNavigate();
@@ -39,19 +42,41 @@ export function OrgSwitcher() {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 text-sm font-medium hover:text-(--color-accent) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
+        className={cn(
+          'flex w-full items-center gap-3 border border-(--color-border) bg-(--color-surface) rounded-(--ef-radius) p-2 text-left',
+          'transition-colors hover:border-(--color-text)/25',
+          collapsed && 'justify-center p-1.5',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)'
+        )}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={collapsed ? `Organization: ${current?.organizationName || 'none selected'}. Switch organization` : undefined}
+        title={collapsed ? current?.organizationName : undefined}
       >
-        {current?.organizationName || 'Select organization'}
-        <ChevronsUpDown className="size-3.5 text-(--color-text)/40" aria-hidden="true" />
+        <span
+          aria-hidden="true"
+          className="grid size-8 shrink-0 place-items-center rounded-(--ef-radius-sm) bg-(--color-text) text-(--color-bg) text-sm font-semibold"
+        >
+          {(current?.organizationName || '?').charAt(0).toUpperCase()}
+        </span>
+        {!collapsed && (
+          <>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold leading-tight">
+                {current?.organizationName || 'Select organization'}
+              </span>
+              <span className="block text-xs text-(--color-text)/50">Organization</span>
+            </span>
+            <ChevronsUpDown className="size-3.5 shrink-0 text-(--color-text)/40" aria-hidden="true" />
+          </>
+        )}
       </button>
 
       <AnimatePresence>
         {open && (
           <motion.div
             role="listbox"
-            className="absolute left-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-64 border border-(--color-border) bg-(--color-bg) shadow-sm z-40"
+            className="absolute left-0 top-full mt-1.5 w-full min-w-56 max-w-[calc(100vw-2rem)] p-1 border border-(--color-border) bg-(--color-surface) rounded-(--ef-radius) shadow-[0_10px_30px_-12px_rgb(0_0_0/0.35)] z-40"
             initial={{ opacity: 0, y: reduceMotion ? 0 : -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: reduceMotion ? 0 : -4 }}
@@ -66,7 +91,7 @@ export function OrgSwitcher() {
                   setOpen(false);
                   navigate(ROUTES.orgDashboard(m.organizationSlug));
                 }}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-left hover:bg-(--color-bg-secondary) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
+                className="w-full flex items-center justify-between px-3 py-2 text-sm text-left rounded-(--ef-radius-sm) hover:bg-(--color-bg-secondary) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--color-accent)"
               >
                 {m.organizationName}
                 {m.organizationSlug === organizationSlug && <Check className="size-4 text-(--color-accent)" aria-hidden="true" />}
@@ -75,7 +100,7 @@ export function OrgSwitcher() {
             <Link
               to={ROUTES.ONBOARDING}
               onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm border-t border-(--color-border) text-(--color-text)/70 hover:bg-(--color-bg-secondary) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent)"
+              className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-sm border-t border-(--color-border) text-(--color-text)/70 rounded-(--ef-radius-sm) hover:bg-(--color-bg-secondary) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--color-accent)"
             >
               <Plus className="size-4" aria-hidden="true" />
               Create organization
