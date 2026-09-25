@@ -11,14 +11,19 @@ export function EventAnalyticsPanel({ eventId }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatTile label="Registered" value={data.registeredCount} />
-        <StatTile label="Waitlisted" value={data.waitlistedCount} />
-        <StatTile label="Capacity Utilization" value={formatRate(data.capacityUtilization)} />
-        <StatTile label="Cancellation Rate" value={formatRate(data.cancellationRate)} />
-      </div>
-      <StatTile label="Attendance Rate" value={formatRate(data.attendanceRate)} />
       <RegistrationTimelineChart timeline={data.registrationTimeline} />
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <StatTile compact label="Registered" value={data.registeredCount} />
+        <StatTile compact label="Waitlisted" value={data.waitlistedCount} />
+        <StatTile compact label="Capacity Utilization" value={formatRate(data.capacityUtilization)} />
+        <StatTile compact label="Cancellation Rate" value={formatRate(data.cancellationRate)} />
+        <StatTile
+          compact
+          label="Attendance Rate"
+          value={formatRate(data.attendanceRate)}
+          hint={data.attendanceRate === null || data.attendanceRate === undefined ? 'Not enough data yet' : undefined}
+        />
+      </div>
     </div>
   );
 }

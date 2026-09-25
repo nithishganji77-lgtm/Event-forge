@@ -17,14 +17,16 @@ const DEFAULT_ART = { icon: CalendarDays, angle: 135 };
 // the brand accent tinted into the current surface, so it follows light/dark on its own. The cover
 // URL only ever goes into <img src> — never CSS url(), where a crafted value could break out of
 // the declaration. `children` render on top (the status badge).
-export function EventCover({ coverImage, category, className, children }) {
+// `variant="hero"` is the big banner behind white text: a deeper, warmer gradient than the pale card
+// banner, so a dark scrim over it reads as rich rather than muddy in either theme.
+export function EventCover({ coverImage, category, className, aspectClassName = 'aspect-[16/7]', variant = 'card', children }) {
   const [failed, setFailed] = useState(false);
   const art = CATEGORY_ART[category] ?? DEFAULT_ART;
   const Icon = art.icon;
   const showImage = Boolean(coverImage) && !failed;
 
   return (
-    <div className={cn('relative aspect-[16/7] w-full overflow-hidden bg-(--color-bg-secondary)', className)}>
+    <div className={cn('relative w-full overflow-hidden bg-(--color-bg-secondary)', aspectClassName, className)}>
       {showImage ? (
         <img
           src={coverImage}
@@ -40,10 +42,16 @@ export function EventCover({ coverImage, category, className, children }) {
           data-testid="generated-cover"
           className="absolute inset-0"
           style={{
-            backgroundImage: `linear-gradient(${art.angle}deg, color-mix(in oklab, var(--color-accent) 22%, var(--color-surface)) 0%, var(--color-surface) 75%)`,
+            backgroundImage:
+              variant === 'hero'
+                ? `linear-gradient(${art.angle}deg, color-mix(in oklab, var(--color-accent) 72%, #120a06) 0%, color-mix(in oklab, var(--color-accent) 30%, #120a06) 100%)`
+                : `linear-gradient(${art.angle}deg, color-mix(in oklab, var(--color-accent) 22%, var(--color-surface)) 0%, var(--color-surface) 75%)`,
           }}
         >
-          <Icon className="absolute -right-4 -bottom-5 size-28 text-(--color-accent)/20" strokeWidth={1.25} />
+          <Icon
+            className={variant === 'hero' ? 'absolute -right-6 -bottom-8 size-56 text-white/15' : 'absolute -right-4 -bottom-5 size-28 text-(--color-accent)/20'}
+            strokeWidth={1.25}
+          />
         </div>
       )}
       {children}

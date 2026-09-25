@@ -38,4 +38,10 @@ describe('EventCover', () => {
     );
     expect(screen.getByText('Badge')).toBeInTheDocument();
   });
+  it('takes its own aspect ratio and a stronger banner for the event page hero', () => {
+    const { container } = render(<EventCover category="Conference" variant="hero" aspectClassName="h-64" />);
+    expect(screen.getByTestId('generated-cover')).toBeInTheDocument();
+    expect(container.firstChild.className).toContain('h-64');
+    expect(container.firstChild.className).not.toContain('aspect-[16/7]');
+  });
 });

@@ -46,4 +46,14 @@ describe('formatRate', () => {
     expect(formatRate(undefined)).toBe('—');
     expect(formatRate(0.456)).toBe('46%');
   });
+  it('renders children under the value, and takes a class and a value size for layout', () => {
+    const { container } = render(
+      <StatTile label="Registered" value="3 / 10" className="col-span-2" valueClassName="text-xl">
+        <div data-testid="bar" />
+      </StatTile>
+    );
+    expect(screen.getByTestId('bar')).toBeInTheDocument();
+    expect(container.firstChild.className).toContain('col-span-2');
+    expect(screen.getByText('3 / 10').className).toContain('text-xl');
+  });
 });

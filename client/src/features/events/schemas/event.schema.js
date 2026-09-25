@@ -12,7 +12,14 @@ const venueSchema = z.object({
   name: z.string().trim().max(200).optional(),
   address: z.string().trim().max(300).optional(),
   room: z.string().trim().max(100).optional(),
-  mapUrl: z.union([z.string().trim().url('Enter a valid URL'), z.literal('')]).optional(),
+  // http(s) only, like the server: a map link becomes an <a href>, and a javascript: URL passes
+  // a generic URL check.
+  mapUrl: z
+    .union([
+      z.string().trim().url('Enter a valid URL').refine((value) => /^https?:\/\//i.test(value), 'Use an http:// or https:// link'),
+      z.literal(''),
+    ])
+    .optional(),
 });
 
 // Mirrors server/src/validators/event.validator.js's eventFields — UX-only mirror, same

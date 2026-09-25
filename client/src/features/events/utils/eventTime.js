@@ -40,11 +40,16 @@ export function formatTimeOfDay(hhmm) {
   }).format(new Date(Date.UTC(2000, 0, 1, Number(match[1]), Number(match[2]))));
 }
 
-// "Sep 24 · 6:00 PM", "Sep 24 – Sep 26 · 6:00 PM", or just the date when no start time is set.
-export function formatEventWhen(event, options) {
+// "Sep 24" or "Sep 24 – Sep 26": the dates alone, however many days the event spans.
+export function formatEventDates(event, options) {
   const startDay = formatEventDay(event.startDate, options);
   const multiDay = event.endDate && dayKey(event.endDate) !== dayKey(event.startDate);
-  const days = multiDay ? `${startDay} – ${formatEventDay(event.endDate, options)}` : startDay;
+  return multiDay ? `${startDay} – ${formatEventDay(event.endDate, options)}` : startDay;
+}
+
+// "Sep 24 · 6:00 PM", "Sep 24 – Sep 26 · 6:00 PM", or just the date when no start time is set.
+export function formatEventWhen(event, options) {
+  const days = formatEventDates(event, options);
   const time = formatTimeOfDay(event.startTime);
   return time ? `${days} · ${time}` : days;
 }

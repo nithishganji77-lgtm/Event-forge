@@ -3,24 +3,26 @@ import { cn } from '../../lib/cn.js';
 
 const TREND_ICONS = { up: ArrowUpRight, down: ArrowDownRight, flat: Minus };
 
-// `icon` and `trend` are optional and the analytics pages don't pass them, so those tiles are
-// unchanged. `trend` is { direction: 'up' | 'down' | 'flat', text } — always an arrow icon plus
+// `icon`, `trend`, `children` (rendered under the value, e.g. a progress bar) and `valueClassName`
+// are optional and the analytics pages don't pass them, so those tiles are unchanged. `trend` is { direction: 'up' | 'down' | 'flat', text } — always an arrow icon plus
 // words, never colour alone. `compact` trims the padding for dense KPI rows.
-export function StatTile({ label, value, hint, icon: Icon, trend, compact = false }) {
+export function StatTile({ label, value, hint, icon: Icon, trend, compact = false, valueClassName, className, children }) {
   const TrendIcon = trend ? TREND_ICONS[trend.direction] ?? Minus : null;
 
   return (
     <div
       className={cn(
         'border border-(--color-border) bg-(--color-surface) rounded-(--ef-radius)',
-        compact ? 'p-4' : 'p-5'
+        compact ? 'p-4' : 'p-5',
+        className
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <p className="text-meta text-(--color-text)/50">{label}</p>
         {Icon && <Icon className="size-4 shrink-0 text-(--color-text)/40" aria-hidden="true" />}
       </div>
-      <p className="text-3xl font-semibold leading-none">{value}</p>
+      <p className={cn('text-3xl font-semibold leading-none', valueClassName)}>{value}</p>
+      {children}
       {trend && (
         <p className="mt-2 flex items-center gap-1 text-sm text-(--color-text)/60">
           <TrendIcon className="size-3.5 shrink-0" aria-hidden="true" />
