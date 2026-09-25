@@ -3,8 +3,10 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute.jsx';
 import { GuestRoute } from './GuestRoute.jsx';
 import { OrgLayoutRoute } from './OrgLayoutRoute.jsx';
+import { RequireAccess } from '../components/RequireAccess.jsx';
 import { Spinner } from '../components/ui/Spinner.jsx';
 import { ROUTES } from '../utils/constants.js';
+import { PERMISSIONS } from '../utils/permissions.js';
 
 // Every page below is a named export, so React.lazy's dynamic import() needs the .then() remap to
 // a { default } shape. Splitting all 20 routes into their own chunks is what gets recharts (the
@@ -89,14 +91,49 @@ const router = createBrowserRouter([
         children: [
           { path: 'dashboard', element: <DashboardPage /> },
           { path: 'members', element: <MembersPage /> },
-          { path: 'settings', element: <OrganizationSettingsPage /> },
+          {
+            path: 'settings',
+            element: (
+              <RequireAccess permission={PERMISSIONS.ORGANIZATION_UPDATE}>
+                <OrganizationSettingsPage />
+              </RequireAccess>
+            ),
+          },
           { path: 'events', element: <EventsListPage /> },
-          { path: 'events/new', element: <CreateEventPage /> },
+          {
+            path: 'events/new',
+            element: (
+              <RequireAccess permission={PERMISSIONS.EVENT_CREATE}>
+                <CreateEventPage />
+              </RequireAccess>
+            ),
+          },
           { path: 'events/:eventId', element: <EventDetailPage /> },
-          { path: 'events/:eventId/edit', element: <EditEventPage /> },
+          {
+            path: 'events/:eventId/edit',
+            element: (
+              <RequireAccess permission={PERMISSIONS.EVENT_UPDATE}>
+                <EditEventPage />
+              </RequireAccess>
+            ),
+          },
           { path: 'calendar', element: <CalendarPage /> },
-          { path: 'analytics', element: <AnalyticsPage /> },
-          { path: 'audit-logs', element: <AuditLogPage /> },
+          {
+            path: 'analytics',
+            element: (
+              <RequireAccess permission={PERMISSIONS.ANALYTICS_READ}>
+                <AnalyticsPage />
+              </RequireAccess>
+            ),
+          },
+          {
+            path: 'audit-logs',
+            element: (
+              <RequireAccess permission={PERMISSIONS.AUDIT_READ}>
+                <AuditLogPage />
+              </RequireAccess>
+            ),
+          },
           { path: 'notifications', element: <NotificationsPage /> },
         ],
       },
