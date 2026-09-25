@@ -7,6 +7,8 @@ export { eventParamsSchema } from './event.validator.js';
 
 export const listRegistrationsQuerySchema = paginationQuerySchema.extend({
   status: z.enum(REGISTRATION_STATUS_VALUES).optional(),
+  // Matches the attendee's name or email.
+  search: z.string().trim().max(120).optional(),
 });
 
 export const markAttendanceParamsSchema = z.object({

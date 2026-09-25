@@ -2,6 +2,7 @@ import slugify from 'slugify';
 import { Event } from '../models/Event.js';
 import { EventRegistration } from '../models/EventRegistration.js';
 import { OrganizationMember } from '../models/OrganizationMember.js';
+import { User } from '../models/User.js';
 import { MEMBER_STATUS } from '../constants/roles.js';
 import { EVENT_STATUS, REGISTRATION_STATUS } from '../constants/eventStatus.js';
 import { computeDisplayStatus, statusFilterToQuery } from '../utils/eventStatus.js';
@@ -101,8 +102,23 @@ export async function listEvents(
   return { data, total };
 }
 
+// The people behind an event, as profiles: the creator first, then each listed organizer. The event
+// itself keeps `createdBy` / `organizers` as plain ids (the client's ownership checks compare
+// them), so this is a separate field. Detail only: a list of 20 events would otherwise pay a user
+// lookup each. Name, email and avatar are what the members list already shows every member.
+async function loadPeople(event) {
+  const ids = [event.createdBy, ...(event.organizers ?? [])].map(String);
+  const unique = [...new Set(ids)];
+  const users = await User.find({ _id: { $in: unique } }).select('name email avatar').lean();
+  const byId = new Map(users.map((user) => [String(user._id), user]));
+  return unique
+    .filter((id) => byId.has(id))
+    .map((id) => ({ ...byId.get(id), role: id === String(event.createdBy) ? 'CREATOR' : 'ORGANIZER' }));
+}
+
 export async function getEventDetail(event, viewerUserId) {
-  return attachStats(event, viewerUserId);
+  const [detail, people] = await Promise.all([attachStats(event, viewerUserId), loadPeople(event)]);
+  return { ...detail, people };
 }
 
 export async function updateEvent(event, updates) {

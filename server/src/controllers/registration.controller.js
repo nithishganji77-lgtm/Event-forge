@@ -78,8 +78,8 @@ export const cancelRegistrationHandler = asyncHandler(async (req, res) => {
 });
 
 export const listRegistrationsHandler = asyncHandler(async (req, res) => {
-  const { page, limit, status } = req.query;
-  const { data, total } = await listRegistrations(req.event._id, { page, limit, status });
+  const { page, limit, status, search } = req.query;
+  const { data, total } = await listRegistrations(req.event._id, { page, limit, status, search });
   return sendPaginated(res, { data, page, limit, total });
 });
 

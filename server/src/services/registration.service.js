@@ -3,7 +3,8 @@ import { EVENT_STATUS, REGISTRATION_STATUS, ATTENDANCE_STATUS } from '../constan
 import { computeDisplayStatus } from '../utils/eventStatus.js';
 import { attachStats } from './event.service.js';
 import { ApiError } from '../utils/ApiError.js';
-import { toSkipLimit } from '../utils/paginate.js';
+import { User } from '../models/User.js';
+import { escapeRegex, toSkipLimit } from '../utils/paginate.js';
 
 // Built against EventRegistration's non-partial {event,user} unique index: cancel-then-re-register
 // must reuse/update the same document, never insert a second one.
@@ -83,9 +84,21 @@ export async function markAttendance(eventId, registrationId, attendanceStatus) 
   return registration;
 }
 
-export async function listRegistrations(eventId, { page, limit, status }) {
+export async function listRegistrations(eventId, { page, limit, status, search }) {
   const filter = { event: eventId };
   if (status) filter.status = status;
+
+  // Two steps, as in listMembers: populate({ match }) cannot be combined with parent-side
+  // pagination. Only users who actually registered can match, so it is narrowed by the event's
+  // own registrations first rather than scanning every user.
+  if (search) {
+    const pattern = new RegExp(escapeRegex(search), 'i');
+    const registrantIds = await EventRegistration.distinct('user', { event: eventId });
+    const users = await User.find({ _id: { $in: registrantIds }, $or: [{ name: pattern }, { email: pattern }] })
+      .select('_id')
+      .lean();
+    filter.user = { $in: users.map((u) => u._id) };
+  }
 
   const { skip, limit: take } = toSkipLimit({ page, limit });
   const [data, total] = await Promise.all([

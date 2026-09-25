@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { objectId } from './common.js';
+import { objectId, httpUrl } from './common.js';
 import { paginationQuerySchema } from '../utils/paginate.js';
 import { EVENT_STATUS_FILTER_VALUES } from '../constants/eventStatus.js';
 import { isValidTimeOfDay, isValidTimeZone } from '../utils/eventTime.js';
@@ -13,7 +13,7 @@ const venueSchema = z
     name: z.string().trim().max(200).optional(),
     address: z.string().trim().max(300).optional(),
     room: z.string().trim().max(100).optional(),
-    mapUrl: z.union([z.string().trim().url(), z.literal('')]).optional(),
+    mapUrl: z.union([httpUrl, z.literal('')]).optional(),
   })
   .optional();
 
@@ -28,7 +28,7 @@ const eventFields = {
   title: z.string().trim().min(2, 'Title is too short').max(200),
   description: z.string().trim().max(5000).optional(),
   category: z.string().trim().max(60).optional(),
-  coverImage: z.string().trim().url().optional(),
+  coverImage: httpUrl.optional(),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   startTime: timeOfDay.optional(),
