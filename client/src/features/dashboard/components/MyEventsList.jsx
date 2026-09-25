@@ -1,6 +1,7 @@
 import { useMyEvents } from '../../events/hooks/useMyEvents.js';
 import { EventCard } from '../../events/components/EventCard.jsx';
 import { EmptyState } from '../../../components/ui/EmptyState.jsx';
+import { Ticket } from 'lucide-react';
 import { Spinner } from '../../../components/ui/Spinner.jsx';
 
 // useMyEvents() returns registrations across every org the user belongs to (GET /me/events isn't
@@ -18,7 +19,13 @@ export function MyEventsList({ organizationId }) {
     .sort((a, b) => new Date(a.event.startDate) - new Date(b.event.startDate));
 
   if (registrations.length === 0) {
-    return <EmptyState title="You haven't registered for anything yet" description="Discover events above to get started." />;
+    return (
+      <EmptyState
+        icon={Ticket}
+        title="You haven't registered for anything yet"
+        description="Register for an event above and it will show up here."
+      />
+    );
   }
 
   return (

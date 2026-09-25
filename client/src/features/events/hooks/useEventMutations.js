@@ -13,6 +13,10 @@ function useInvalidateEvents(orgId, eventId) {
   const queryClient = useQueryClient();
   return () => {
     queryClient.invalidateQueries({ queryKey: ['organizations', orgId, 'events'] });
+    // The dashboard's KPIs (['organizations', orgId, 'analytics', 'dashboard', ...]) and its
+    // recent-activity feed are derived from the same events, so they go stale with them.
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ORG_ANALYTICS(orgId) });
+    queryClient.invalidateQueries({ queryKey: ['organizations', orgId, 'audit-logs'] });
     if (eventId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EVENT(eventId) });
   };
 }

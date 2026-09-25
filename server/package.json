@@ -9,6 +9,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "seed": "node src/seed/seed.js",
+    "seed:demo": "node src/seed/demoData.js",
     "lint": "eslint src",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
     "backfill:event-times": "node src/seed/backfillEventTimes.js",

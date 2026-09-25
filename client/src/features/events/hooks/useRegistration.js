@@ -8,6 +8,12 @@ function useInvalidateRegistration(eventId) {
     // Re-render from server truth rather than trusting a possibly-stale pre-click capacity guess.
     queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EVENT(eventId) });
     queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MY_EVENTS });
+    // Every org's event lists (cards show registeredCount / myRegistrationStatus) and analytics
+    // (the dashboard's attendee KPI) change with a registration. The hook only knows the event id,
+    // not its org, so match by key shape rather than by org.
+    queryClient.invalidateQueries({
+      predicate: ({ queryKey }) => queryKey[0] === 'organizations' && (queryKey[2] === 'events' || queryKey[2] === 'analytics'),
+    });
   };
 }
 
