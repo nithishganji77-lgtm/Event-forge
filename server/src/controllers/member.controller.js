@@ -16,7 +16,7 @@ async function loadMember(req) {
     _id: req.params.memberId,
     organization: req.organization._id,
   });
-  if (!member) throw ApiError.notFound('Member not found');
+  if (!member) throw ApiError.notFound("We couldn't find that member. They may have been removed.");
   return member;
 }
 

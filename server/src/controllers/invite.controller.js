@@ -15,7 +15,7 @@ import { ApiError } from '../utils/ApiError.js';
 
 async function loadInvite(req) {
   const invite = await Invite.findOne({ _id: req.params.inviteId, organization: req.organization._id });
-  if (!invite) throw ApiError.notFound('Invite not found');
+  if (!invite) throw ApiError.notFound("We couldn't find that invitation. The link may be wrong.");
   return invite;
 }
 

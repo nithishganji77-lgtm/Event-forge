@@ -201,7 +201,7 @@ export async function markNotificationRead(userId, notificationId) {
     { read: true, readAt: new Date() },
     { new: true }
   );
-  if (!notification) throw ApiError.notFound('Notification not found');
+  if (!notification) throw ApiError.notFound("We couldn't find that notification.");
   return notification;
 }
 

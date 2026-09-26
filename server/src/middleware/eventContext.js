@@ -11,12 +11,12 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 export const eventContext = asyncHandler(async (req, res, next) => {
   const event = await Event.findById(req.params.eventId);
   if (!event) {
-    throw ApiError.notFound('Event not found');
+    throw ApiError.notFound("We couldn't find that event. It may have been deleted, or the link may be wrong.");
   }
 
   const organization = await Organization.findById(event.organization);
   if (!organization) {
-    throw ApiError.notFound('Organization not found');
+    throw ApiError.notFound("We couldn't find that organization.");
   }
 
   const membership = await OrganizationMember.findOne({

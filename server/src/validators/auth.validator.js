@@ -4,8 +4,8 @@ const passwordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
   .max(128)
-  .regex(/[A-Za-z]/, 'Password must contain a letter')
-  .regex(/[0-9]/, 'Password must contain a number');
+  .regex(/[A-Za-z]/, 'Add at least one letter to your password')
+  .regex(/[0-9]/, 'Add at least one number to your password');
 
 export const registerSchema = z.object({
   name: z.string().trim().min(2, 'Enter your full name (at least 2 characters)').max(120),

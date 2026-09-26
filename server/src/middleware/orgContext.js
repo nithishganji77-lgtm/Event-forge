@@ -9,7 +9,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 export const orgContext = asyncHandler(async (req, res, next) => {
   const organization = await Organization.findById(req.params.orgId);
   if (!organization) {
-    throw ApiError.notFound('Organization not found');
+    throw ApiError.notFound("We couldn't find that organization.");
   }
 
   const membership = await OrganizationMember.findOne({

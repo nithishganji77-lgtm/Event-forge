@@ -132,7 +132,7 @@ export async function previewInviteByToken(rawToken) {
   const invite = await Invite.findOne({ tokenHash: hashToken(rawToken) })
     .populate('organization', 'name slug');
   if (!invite) {
-    throw ApiError.notFound('Invite not found');
+    throw ApiError.notFound("We couldn't find that invitation. The link may be wrong.");
   }
 
   return {
@@ -149,7 +149,7 @@ export async function previewInviteByToken(rawToken) {
 export async function acceptInviteByToken(rawToken, user) {
   const invite = await Invite.findOne({ tokenHash: hashToken(rawToken) });
   if (!invite) {
-    throw ApiError.notFound('Invite not found');
+    throw ApiError.notFound("We couldn't find that invitation. The link may be wrong.");
   }
   if (invite.email !== user.email.toLowerCase()) {
     throw ApiError.forbidden('This invite was sent to a different email address. Sign in with the address it was sent to.');
