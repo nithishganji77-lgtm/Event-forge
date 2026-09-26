@@ -136,6 +136,35 @@ describe('ManagerDashboard', () => {
       expect(within(feed).getByText('A waitlisted attendee was moved into')).toBeInTheDocument();
     });
 
+    it('sends "Publish a draft" to the drafts when there are some', async () => {
+      serveDashboard();
+      renderManager('SUPER_ADMIN', user);
+      expect(await screen.findByRole('link', { name: /Publish a draft/ })).toHaveAttribute('href', '/org/acme/events?status=DRAFT');
+      expect(screen.queryByRole('link', { name: /Create an event/ })).not.toBeInTheDocument();
+    });
+
+    it('goes straight to the create-event page when there are no drafts, not to an empty list', async () => {
+      serveDashboard({ summaryBody: { ...summary, pendingActions: { total: 2, drafts: 0, pendingInvites: 2 } } });
+      renderManager('SUPER_ADMIN', user);
+
+      expect(await screen.findByRole('link', { name: /Create an event/ })).toHaveAttribute('href', '/org/acme/events/new');
+      expect(screen.queryByRole('link', { name: /Publish a draft/ })).not.toBeInTheDocument();
+    });
+
+    it('does not flash "Publish a draft" while the summary is still loading', async () => {
+      serveDashboard();
+      renderManager('SUPER_ADMIN', user);
+      expect(screen.queryByRole('link', { name: /Publish a draft|Create an event/ })).not.toBeInTheDocument();
+      await screen.findByRole('link', { name: /Publish a draft/ });
+    });
+
+    it('falls back to the drafts list if the summary fails', async () => {
+      serveDashboard();
+      server.use(http.get(`${BASE}/organizations/${ORG}/analytics/dashboard`, () => HttpResponse.json({ success: false }, { status: 500 })));
+      renderManager('SUPER_ADMIN', user);
+      expect(await screen.findByRole('link', { name: /Publish a draft/ })).toHaveAttribute('href', '/org/acme/events?status=DRAFT');
+    });
+
     it("does not scope the event lists to a person", async () => {
       serveDashboard();
       renderManager('ORG_ADMIN', user);

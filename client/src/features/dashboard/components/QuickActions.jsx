@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ChartColumn, ChevronRight, Rocket, UserPlus } from 'lucide-react';
+import { ChartColumn, ChevronRight, Plus, Rocket, UserPlus } from 'lucide-react';
 import { useDashboardSummary } from '../hooks/useDashboardSummary.js';
 import { useActiveOrganization } from '../../../hooks/useActiveOrganization.js';
 import { PERMISSIONS } from '../../../utils/permissions.js';
@@ -9,18 +9,34 @@ import { ROUTES } from '../../../utils/constants.js';
 // actually do it (an organizer has no "Invite members"). Renders nothing if none apply.
 export function QuickActions({ organizationId }) {
   const { organizationSlug, permissions } = useActiveOrganization();
-  const { data: summary } = useDashboardSummary(organizationId);
-  const drafts = summary?.pendingActions?.drafts ?? 0;
+  const { data: summary, isLoading } = useDashboardSummary(organizationId);
+  // null = not known (still loading, or the summary failed).
+  const drafts = summary?.pendingActions?.drafts ?? null;
+
+  // The first shortcut follows what there is to do. With drafts waiting it is "Publish a draft" and
+  // shows them; with none, a link to a list of nothing would just be a detour to "Create event", so it
+  // becomes "Create an event" and goes straight to the wizard. It is left out while loading so the
+  // label does not flip after first paint; if the summary fails it falls back to the drafts list.
+  const noDrafts = drafts === 0;
+  const draftAction = noDrafts
+    ? {
+        key: 'create',
+        show: permissions.has(PERMISSIONS.EVENT_CREATE),
+        icon: Plus,
+        label: 'Create an event',
+        to: ROUTES.orgEventNew(organizationSlug),
+      }
+    : {
+        key: 'publish',
+        show: permissions.has(PERMISSIONS.EVENT_PUBLISH) && !isLoading,
+        icon: Rocket,
+        label: 'Publish a draft',
+        hint: drafts > 0 ? `${drafts} waiting` : undefined,
+        to: `${ROUTES.orgEvents(organizationSlug)}?status=DRAFT`,
+      };
 
   const actions = [
-    {
-      key: 'publish',
-      show: permissions.has(PERMISSIONS.EVENT_PUBLISH),
-      icon: Rocket,
-      label: 'Publish a draft',
-      hint: drafts > 0 ? `${drafts} waiting` : undefined,
-      to: `${ROUTES.orgEvents(organizationSlug)}?status=DRAFT`,
-    },
+    draftAction,
     {
       key: 'invite',
       show: permissions.has(PERMISSIONS.MEMBER_CREATE),
