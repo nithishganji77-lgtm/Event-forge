@@ -135,6 +135,27 @@ Dates are displayed by reading the stored calendar date in UTC (`features/events
 `listEvents` composes its conditions (organizer, status fragment, date window) as separate `$and`
 clauses so none overwrites another, and takes a whitelisted `sort` with an `_id` tiebreak.
 
+### Errors
+
+The server answers `{ success: false, error: { code, message, details } }`. `message` is always a
+sentence a person can act on; for validation it is the problem itself ("Event name is required;
+Capacity must be a number"), and `details` is `[{ path, message }]`, one per field, so a client can put
+each next to its input. A global zod error map (`server/src/config/zodMessages.js`, field names from
+`utils/fieldLabels.js`) replaces zod's developer wording; a message written on a schema still wins,
+so hard-coded ones must read as sentences too. The error handler maps duplicate keys, bad ids,
+multer and malformed-JSON errors to sentences (never a raw 500 for client input) and 5xx never leaks
+internals.
+
+On the client, `lib/errors.js` `getErrorInfo(error)` is the one reader: `{ kind, message, fieldErrors,
+retryable }`, covering a dropped connection, a timeout, a proxy's HTML 502, a 429 with a wait time,
+and never surfacing an error our own code threw. Use `extractErrorMessage` for a sentence,
+`useServerFormErrors` to put server field errors on a react-hook-form form (banner only for what
+isn't a field), `QueryError` for a failed load (Try again only when `retryable`), and tag a
+mutation that has no form or dialog of its own with `meta: { errorToast: 'Could not do X' }` so its
+failure toasts instead of vanishing. `PageErrorBoundary` (dashboard content) and the router's
+`errorElement` catch crashes and stale-chunk failures. TanStack Query runs with `networkMode:
+'always'` and does not retry 4xx answers.
+
 ### Dashboards and the app shell
 
 Two dashboards, split by whether the person runs events (`ManagerDashboard`: SUPER_ADMIN, ORG_ADMIN,
@@ -295,6 +316,10 @@ via Rollup's default splitting — no manual `vite.config.js` chunk tuning neede
   `toSkipLimit` without importing it, so the pending-invites list 500'd for every org after the
   Phase 7 refactor. Only opening every page with a fresh account found it. Every list endpoint now has
   a route-level test; prefer those over service-only tests for list endpoints.
+- **TanStack Query pauses requests while the browser is offline** (`networkMode: 'online'`, the
+  default) and waits silently, so a lost connection looked like a blank page: no spinner, no error.
+  The app sets `networkMode: 'always'` so requests fail into "We can't reach EventForge" with Try
+  again, and shows an offline banner.
 - **Mongoose validates every loaded path on `save()`**, not just modified ones: validators on fields
   that can hold legacy values (`timezone`, `endsAt`) must self-gate on `isNew` / `isModified`, or an
   unrelated save (the reminder cron) fails on an old row.
