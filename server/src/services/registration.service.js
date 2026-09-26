@@ -10,12 +10,12 @@ import { escapeRegex, toSkipLimit } from '../utils/paginate.js';
 // must reuse/update the same document, never insert a second one.
 export async function registerForEvent(event, user) {
   if (computeDisplayStatus(event) !== EVENT_STATUS.REGISTRATION_OPEN) {
-    throw ApiError.conflict('Registration is closed for this event');
+    throw ApiError.conflict('Registration for this event is closed.');
   }
 
   const existing = await EventRegistration.findOne({ event: event._id, user: user._id });
   if (existing && existing.status !== REGISTRATION_STATUS.CANCELLED) {
-    throw ApiError.conflict('You are already registered for this event');
+    throw ApiError.conflict('You are already registered for this event.');
   }
 
   const registeredCount = await EventRegistration.countDocuments({
@@ -46,9 +46,9 @@ export async function registerForEvent(event, user) {
 
 export async function cancelRegistration(event, user) {
   const existing = await EventRegistration.findOne({ event: event._id, user: user._id });
-  if (!existing) throw ApiError.notFound('You are not registered for this event');
+  if (!existing) throw ApiError.notFound("You aren't registered for this event.");
   if (existing.status === REGISTRATION_STATUS.CANCELLED) {
-    throw ApiError.conflict('You have already cancelled your registration for this event');
+    throw ApiError.conflict('You have already cancelled your registration for this event.');
   }
 
   const wasRegistered = existing.status === REGISTRATION_STATUS.REGISTERED;
@@ -75,9 +75,9 @@ export async function cancelRegistration(event, user) {
 // for them.
 export async function markAttendance(eventId, registrationId, attendanceStatus) {
   const registration = await EventRegistration.findOne({ _id: registrationId, event: eventId });
-  if (!registration) throw ApiError.notFound('Registration not found');
+  if (!registration) throw ApiError.notFound("We couldn't find that registration.");
   if (registration.status !== REGISTRATION_STATUS.REGISTERED) {
-    throw ApiError.conflict('Attendance can only be marked for confirmed registrations');
+    throw ApiError.conflict('Attendance can only be marked for people with a confirmed spot, not for the waitlist or cancelled registrations.');
   }
   registration.attendanceStatus = attendanceStatus;
   await registration.save();

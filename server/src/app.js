@@ -6,6 +6,7 @@ import compression from 'compression';
 import pinoHttp from 'pino-http';
 import path from 'node:path';
 
+import './config/zodMessages.js';
 import { config, clientOrigins } from './config/env.js';
 import { logger } from './config/logger.js';
 import { sanitizeData } from './middleware/sanitizeData.js';

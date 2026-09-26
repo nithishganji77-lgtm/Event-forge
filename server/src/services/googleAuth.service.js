@@ -13,12 +13,12 @@ export async function verifyGoogleCredential(idToken) {
   try {
     ticket = await client.verifyIdToken({ idToken, audience: config.GOOGLE_CLIENT_ID });
   } catch {
-    throw ApiError.unauthorized('Invalid Google credential');
+    throw ApiError.unauthorized("We couldn't verify your Google sign-in. Please try again.");
   }
 
   const payload = ticket.getPayload();
   if (!payload?.email_verified) {
-    throw ApiError.unauthorized('Google account email is not verified');
+    throw ApiError.unauthorized('That Google account\'s email address is not verified, so it can\'t be used to sign in.');
   }
 
   return {

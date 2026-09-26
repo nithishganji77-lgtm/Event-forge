@@ -3,7 +3,7 @@ import { config } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 
 function rateLimitHandler(req, res, next) {
-  next(new ApiError(429, 'RATE_LIMITED', 'Too many requests, please try again later'));
+  next(new ApiError(429, 'RATE_LIMITED', 'Too many requests in a short time. Please wait a few minutes and try again.'));
 }
 
 // Same idiom as app.js's `pinoHttp({ autoLogging: config.NODE_ENV !== 'test' })` — a test suite

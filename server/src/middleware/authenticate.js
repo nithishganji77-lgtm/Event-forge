@@ -13,7 +13,7 @@ export const authenticate = asyncHandler(async (req, res, next) => {
   try {
     payload = verifyAccessToken(token);
   } catch {
-    throw ApiError.unauthorized('Session expired, please log in again');
+    throw ApiError.unauthorized('Your session has expired. Please sign in again.');
   }
 
   const user = await User.findById(payload.sub);

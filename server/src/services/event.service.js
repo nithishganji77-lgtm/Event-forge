@@ -30,7 +30,9 @@ export async function validateOrganizers(organizationId, organizerIds = []) {
     status: MEMBER_STATUS.ACTIVE,
   });
   if (activeCount !== new Set(organizerIds.map(String)).size) {
-    throw ApiError.badRequest('Organizers must be active members of this organization');
+    throw ApiError.badRequest('Organizers must be active members of this organization.', [
+      { path: 'organizers', message: 'Organizers must be active members of this organization.' },
+    ]);
   }
 }
 
@@ -132,15 +134,15 @@ export async function updateEvent(event, updates) {
 
 export async function publishEvent(event) {
   if (event.status === EVENT_STATUS.CANCELLED) {
-    throw ApiError.conflict('A cancelled event cannot be published');
+    throw ApiError.conflict("This event was cancelled, so it can't be published. Duplicate it to start a new one.");
   }
   if (event.status === EVENT_STATUS.PUBLISHED) {
-    throw ApiError.conflict('This event is already published');
+    throw ApiError.conflict('This event is already published.');
   }
   // Compares the real start instant (date + time + timezone), so a same-day event that hasn't
   // started yet can be published. `?? startDate` only covers a not-yet-backfilled legacy row.
   if ((event.startsAt ?? event.startDate) <= new Date()) {
-    throw ApiError.badRequest('The event must start in the future to publish');
+    throw ApiError.badRequest('This event has already started, so it can\'t be published. Change its date or time first.');
   }
   event.status = EVENT_STATUS.PUBLISHED;
   event.publishedAt = new Date();

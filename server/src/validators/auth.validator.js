@@ -8,22 +8,22 @@ const passwordSchema = z
   .regex(/[0-9]/, 'Password must contain a number');
 
 export const registerSchema = z.object({
-  name: z.string().trim().min(2, 'Name is too short').max(120),
-  email: z.string().trim().toLowerCase().email('Invalid email address'),
+  name: z.string().trim().min(2, 'Enter your full name (at least 2 characters)').max(120),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
   password: passwordSchema,
 });
 
 export const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  password: z.string().min(1, 'Enter your password'),
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().trim().toLowerCase().email('Invalid email address'),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
 });
 
 export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Reset token is required'),
+  token: z.string().min(1, 'That reset link is incomplete. Request a new one.'),
   password: passwordSchema,
 });
 

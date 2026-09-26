@@ -141,7 +141,7 @@ export const duplicateEventHandler = asyncHandler(async (req, res) => {
 });
 
 export const uploadCoverImageHandler = asyncHandler(async (req, res) => {
-  if (!req.file) throw ApiError.badRequest('No image file provided');
+  if (!req.file) throw ApiError.badRequest('Choose an image to upload.');
 
   const { url } = await storage.upload(req.file.buffer, {
     filename: req.file.originalname,

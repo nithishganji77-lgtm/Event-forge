@@ -45,9 +45,13 @@ export async function createOrResendInvite({ organization, email, role, invitedB
   if (existingMembership.length > 0) {
     const status = existingMembership[0].status;
     if (status === MEMBER_STATUS.ACTIVE) {
-      throw ApiError.conflict('This person is already a member of this organization');
+      throw ApiError.conflict('This person is already a member of this organization.', [
+        { path: 'email', message: 'This person is already a member of this organization.' },
+      ]);
     }
-    throw ApiError.conflict('This person has a disabled membership — re-enable them instead of inviting');
+    throw ApiError.conflict('This person is already in the organization but their access is turned off. Turn it back on from the Members page instead of inviting them again.', [
+      { path: 'email', message: 'This person is already in the organization but their access is turned off. Turn it back on from the Members page instead.' },
+    ]);
   }
 
   const rawToken = randomBytes(32).toString('hex');
@@ -148,13 +152,13 @@ export async function acceptInviteByToken(rawToken, user) {
     throw ApiError.notFound('Invite not found');
   }
   if (invite.email !== user.email.toLowerCase()) {
-    throw ApiError.forbidden('This invite was sent to a different email address');
+    throw ApiError.forbidden('This invite was sent to a different email address. Sign in with the address it was sent to.');
   }
   if (invite.status !== INVITE_STATUS.PENDING) {
-    throw ApiError.conflict('This invite has already been used or revoked');
+    throw ApiError.conflict('This invite has already been used or was cancelled. Ask for a new one.');
   }
   if (invite.expiresAt.getTime() < Date.now()) {
-    throw ApiError.conflict('This invite has expired');
+    throw ApiError.conflict('This invite has expired. Ask an admin to send a new one.');
   }
 
   const membership = await createMembershipFromInvite(invite, user);

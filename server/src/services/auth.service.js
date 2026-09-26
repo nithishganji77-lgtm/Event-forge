@@ -10,7 +10,9 @@ const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 export async function registerUser({ name, email, password }) {
   const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) {
-    throw ApiError.conflict('An account with this email already exists');
+    throw ApiError.conflict('An account with this email already exists. Try signing in instead.', [
+      { path: 'email', message: 'An account with this email already exists. Try signing in instead.' },
+    ]);
   }
 
   const hashed = await bcrypt.hash(password, SALT_ROUNDS);
@@ -21,15 +23,15 @@ export async function registerUser({ name, email, password }) {
 export async function verifyCredentials(email, password) {
   const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
   if (!user || !user.isActive) {
-    throw ApiError.unauthorized('Invalid email or password');
+    throw ApiError.unauthorized("That email and password don't match. Check them and try again, or reset your password.");
   }
   if (!user.password) {
-    throw ApiError.unauthorized('This account uses Google sign-in. Continue with Google instead.');
+    throw ApiError.unauthorized('This account uses Google sign-in. Choose "Continue with Google" instead.');
   }
 
   const matches = await bcrypt.compare(password, user.password);
   if (!matches) {
-    throw ApiError.unauthorized('Invalid email or password');
+    throw ApiError.unauthorized("That email and password don't match. Check them and try again, or reset your password.");
   }
 
   return user;
@@ -101,7 +103,7 @@ export async function resetPasswordWithToken(rawToken, newPassword) {
   }).select('+passwordResetToken +passwordResetExpires');
 
   if (!user) {
-    throw ApiError.badRequest('Password reset link is invalid or has expired');
+    throw ApiError.badRequest('That password reset link is invalid or has expired. Request a new one.');
   }
 
   user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);

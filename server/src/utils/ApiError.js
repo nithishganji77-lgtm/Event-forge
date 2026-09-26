@@ -11,15 +11,15 @@ export class ApiError extends Error {
     return new ApiError(400, 'VALIDATION_ERROR', message, details);
   }
 
-  static unauthorized(message = 'Authentication required') {
+  static unauthorized(message = 'Please sign in to continue.') {
     return new ApiError(401, 'UNAUTHORIZED', message);
   }
 
-  static forbidden(message = 'You do not have permission to perform this action') {
+  static forbidden(message = "You don't have permission to do that. If you need access, ask an organization admin.") {
     return new ApiError(403, 'FORBIDDEN', message);
   }
 
-  static notFound(message = 'Resource not found') {
+  static notFound(message = "We couldn't find what you were looking for.") {
     return new ApiError(404, 'NOT_FOUND', message);
   }
 

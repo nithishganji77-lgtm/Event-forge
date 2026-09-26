@@ -42,7 +42,7 @@ export async function assertNotLastSuperAdmin(organizationId, memberIdBeingChang
     _id: { $ne: memberIdBeingChanged },
   });
   if (remaining === 0) {
-    throw ApiError.conflict('An organization must have at least one active SUPER_ADMIN');
+    throw ApiError.conflict('Every organization needs at least one Super Admin. Make someone else a Super Admin first.');
   }
 }
 

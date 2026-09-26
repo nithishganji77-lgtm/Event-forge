@@ -25,7 +25,7 @@ const timeOfDay = z.string().trim().refine(isValidTimeOfDay, 'Use a 24-hour HH:m
 // dedicated publish/cancel endpoints, never a plain create/update body. The same goes for
 // startsAt/endsAt/registrationClosesAt, which the Event model derives itself.
 const eventFields = {
-  title: z.string().trim().min(2, 'Title is too short').max(200),
+  title: z.string().trim().min(2, 'Give the event a name (at least 2 characters)').max(200),
   description: z.string().trim().max(5000).optional(),
   category: z.string().trim().max(60).optional(),
   coverImage: httpUrl.optional(),

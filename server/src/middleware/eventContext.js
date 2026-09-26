@@ -27,7 +27,7 @@ export const eventContext = asyncHandler(async (req, res, next) => {
     throw ApiError.forbidden('You are not a member of this organization');
   }
   if (membership.status === MEMBER_STATUS.DISABLED) {
-    throw ApiError.forbidden('Your access to this organization has been disabled');
+    throw ApiError.forbidden('Your access to this organization has been turned off. Contact an organization admin.');
   }
 
   req.event = event;
