@@ -44,7 +44,18 @@ cd client && npm install && npm run dev        # http://localhost:5175 (or next 
 
 # Seed demo data
 cd server && npm run seed                       # prints demo login credentials
+cd server && npm run seed:demo                  # "Northwind Events": 4 role users, 14 events in every
+                                                # state, registrations, invites, audit history.
+                                                # `-- --reset` recreates it. Dates are relative to the
+                                                # moment it runs, so re-seed before a demo.
+cd server && npm test                           # jest; `npm run test:tz` also runs it under UTC and
+                                                # America/Los_Angeles (this machine is IST)
+cd client && npm test                           # vitest
 ```
+
+**Dev rate limits:** `authLimiter` is 20 requests / 15 min per IP (register, login, refresh) and
+`apiLimiter` 300 / 15 min, both in memory. Scripted browser runs hit them fast; a `touch
+server/src/server.js` (nodemon restarts) clears them. Both are skipped under `NODE_ENV=test`.
 
 Env vars are documented in `server/.env.example` and `client/.env.example`. Real credentials
 (Cloudinary, Resend, Google) live only in the untracked `.env` files, never committed.
@@ -86,17 +97,74 @@ update/cancel/delete/duplicate events they created or are listed as an organizer
 permission overrides are additive (an `EMPLOYEE` custom-granted `EVENT_UPDATE` should still be
 ownership-scoped, not treated as admin-equivalent).
 
-### Event status: stored vs. derived
+### Event time and status: stored vs. derived
 
-`Event.status` only ever gets *written* `DRAFT`, `PUBLISHED`, or `CANCELLED`. The other four
-values the schema's enum allows (`REGISTRATION_OPEN`, `REGISTRATION_CLOSED`, `ONGOING`,
+**Instants.** `startDate`/`endDate`/`registrationDeadline` are the *calendar date the organizer
+picked*, stored at UTC midnight; `startTime`/`endTime` are validated `HH:mm` wall-clock strings (or
+`''`) in `event.timezone`. A `pre('validate')` hook on `Event` derives three persisted instants —
+`startsAt`, `endsAt`, `registrationClosesAt` — so every write path (create, save, publish, duplicate,
+the reminder cron) is covered by one place. Precedence: (1) a time is set -> UTC Y-M-D + that time in
+the zone; (2) no time, but the date carries a UTC time-of-day -> it *is* the instant (legacy rows and
+test fixtures); (3) otherwise start / end (23:59:59.999) of the day in the zone. So an event with no
+time is "all day", and `registrationClosesAt` is the end of the deadline's day in the event's zone.
+`server/src/utils/eventTime.js` does the zone maths with `Intl` only, using a candidate-offset
+algorithm (the naive two-pass conversion is wrong in DST gaps). Validate zones by constructing an
+`Intl.DateTimeFormat`, **not** `Intl.supportedValuesOf`, which omits `Asia/Kolkata` and `UTC` on
+current Node. `backfillEventTimes()` (run at boot and via `npm run backfill:event-times`) fills the
+instants on older rows.
+
+**Status.** `Event.status` only ever gets *written* `DRAFT`, `PUBLISHED`, or `CANCELLED`. The other
+four values the schema's enum allows (`REGISTRATION_OPEN`, `REGISTRATION_CLOSED`, `ONGOING`,
 `COMPLETED`) are computed live at read time (`server/src/utils/eventStatus.js:
-computeDisplayStatus`) from `startDate`/`endDate`/`registrationDeadline`, and merged onto every API
-response as `event.displayStatus`. This avoids depending on a cron job to advance events through
-their lifecycle, with zero staleness risk — the one cron job the app does have (Phase 5's deadline
-reminder) only sends notifications, it never mutates `status`. Capacity-full is a **separate,
-independent** condition — `displayStatus` stays `REGISTRATION_OPEN` even when an event is full;
-the register button offers "join waitlist" instead.
+computeDisplayStatus`) from the three instants and merged onto every API response as
+`event.displayStatus`. This avoids depending on a cron job to advance events through their
+lifecycle, with zero staleness risk — the one cron job the app does have (the deadline reminder,
+windowed on `registrationClosesAt`) only sends notifications, it never mutates `status`.
+Capacity-full is a **separate, independent** condition — `displayStatus` stays `REGISTRATION_OPEN`
+even when an event is full; the register button offers "join waitlist" instead. `UPCOMING` is a
+*query-only* filter alias (`PUBLISHED & startsAt > now`) in `EVENT_STATUS_FILTER_VALUES`; it is kept
+out of `EVENT_STATUS` because that feeds the Mongoose enum.
+
+**Client presentation.** `features/events/utils/presentationStatus.js` derives what a person sees
+*from the server's `displayStatus`* (ONGOING -> LIVE; open/closed -> UPCOMING, or STARTING SOON with
+a live "Starts in 2H 15M" countdown when the event has a start time and begins within 24h). It never
+re-derives date boundaries, so it cannot disagree with `RegisterButton` or the list filters; the
+client clock (`hooks/useNow.js`, one shared minute-aligned ticker) is used for the countdown only.
+Dates are displayed by reading the stored calendar date in UTC (`features/events/utils/eventTime.js`).
+
+`listEvents` composes its conditions (organizer, status fragment, date window) as separate `$and`
+clauses so none overwrites another, and takes a whitelisted `sort` with an `_id` tiebreak.
+
+### Dashboards and the app shell
+
+Two dashboards, split by whether the person runs events (`ManagerDashboard`: SUPER_ADMIN, ORG_ADMIN,
+ORGANIZER) or attends them (`EmployeeDashboard`). Managers get four KPIs from
+`GET /organizations/:orgId/analytics/dashboard?tz=` (scoped exactly like org analytics: admins
+org-wide, organizers only events they created or organize; `pendingInvites` is `null`, not `0`, when
+the caller cannot manage invites), an events section with Upcoming / Drafts / Completed tabs
+(`?tab=`), a "Live now" strip (a started event is in none of the tabs), a next-7-days schedule
+grouped by the event's own calendar day, permission-gated quick actions, and recent activity only for
+`AUDIT_READ`. Deltas are shown only when the previous month has a baseline (`formatDelta` returns
+`null` for 0; a move from nothing is stated as a fact, never "+100%"). Audit rows for event and
+registration actions carry `{eventId, eventTitle}` in `metadata`, written at the call site, so the
+feed reads "Rahul registered for Sreeman Pelli" without a read-time join and survives a rename or
+delete. A waitlist-promotion row's actor is whoever *cancelled*, so the feed does not name one.
+
+The shell: grouped, collapsible sidebar (icon rail on desktop, persisted; the mobile drawer is never
+collapsed), workspace card, user menu with a light / dark / system theme (`lib/theme.js`, key
+`ef-theme`, pre-paint script in `index.html`). The rounded "soft" look is scoped to the logged-in app
+by `data-shell="app"` on `<html>` (radius tokens `--ef-radius` / `--ef-radius-sm`; Tailwind reserves
+`--radius-*`); landing and auth stay square. Route-level access: `RequireAccess` wraps settings, new /
+edit event, analytics and audit log so a role that reaches them by URL sees why, not a form that can
+only fail.
+
+The event page is a workspace (hero with the cover or a generated category banner, role-aware
+actions with destructive ones in a "⋯" menu, stats with a progress bar, tabs: About / Venue /
+Organizers / Attendees / Analytics). `GET /events/:id` adds `people` (creator + organizers as
+profiles) while `createdBy` / `organizers` stay plain ids for the client's ownership checks. Not
+built, because nothing behind them exists: Export attendees, Add attendee, a map preview (no provider
+or key; "Get directions" opens a Google Maps search), per-event accent colour, event visibility,
+organizer job titles.
 
 ### Invites
 
@@ -203,7 +271,40 @@ via Rollup's default splitting — no manual `vite.config.js` chunk tuning neede
   genuinely different fields/search targets; extracting now would be abstraction before it's
   earned. Same reasoning applied to not building a generic `FilterBar` component.
 
+- Redesign scope (dashboard + app shell + event page): soft look inside the app only, Inter kept,
+  cover image else a generated category banner (no stock imagery), the status bug fixed properly
+  (persisted instants, not a client patch). Out: global search / ⌘K, mobile bottom nav, CSV
+  import/export, Profile / Preferences / Help pages, renaming Members -> "Attendees".
+
 ## Known issues found and fixed (so they don't recur)
+
+- **An unlayered `* { border-color }` beat every Tailwind border utility.** It sat outside
+  `@layer`, so it won over `border-*` colour utilities (active-nav bar, hover borders, invalid-input
+  borders were silently dead). Now inside `@layer base`. `.text-meta` is still unlayered and forces
+  uppercase: never use it for sentence-case titles.
+- **`cn()` is plain `clsx`, not `tailwind-merge`.** Two competing utilities (`text-a` + an override)
+  are both emitted and stylesheet order, not class order, picks the winner. Choose exactly one class
+  per property instead of adding an override (this hid every destructive menu item's colour).
+- **Tailwind v4 moves elements with the `translate` property, not `transform`.** A hover lift with
+  `transition-[transform,...]` snaps; list `translate`.
+- **`z.string().url()` accepts `javascript:` and `data:`.** A venue map link is rendered as an
+  `<a href>`, so an organizer could plant script that runs in a viewer's session. Use `httpUrl`
+  (`validators/common.js`) for any URL that is stored and later rendered; the client renders links
+  through `safeHttpUrl` too.
+- **A missing import shipped because nothing tested the route.** `invite.service.js` called
+  `toSkipLimit` without importing it, so the pending-invites list 500'd for every org after the
+  Phase 7 refactor. Only opening every page with a fresh account found it. Every list endpoint now has
+  a route-level test; prefer those over service-only tests for list endpoints.
+- **Mongoose validates every loaded path on `save()`**, not just modified ones: validators on fields
+  that can hold legacy values (`timezone`, `endsAt`) must self-gate on `isNew` / `isModified`, or an
+  unrelated save (the reminder cron) fails on an old row.
+- **Backfills must not touch other projects' rows.** The dev DB is shared; the backfill restricts to
+  `status: {$in: EVENT_STATUS_VALUES}`.
+- **Node's experimental built-in `localStorage` shadows jsdom's** in Vitest (no `clear()`); tests
+  install an in-memory `Storage`. App code wraps every storage access in try/catch.
+- **Extreme dates in a request body** (`z.coerce.date()` accepts them) can make the `Intl` offset
+  lookup in the pre-validate hook throw a `RangeError`, surfacing as a 500 rather than a 400. Not yet
+  bounded in the validator.
 
 - **Sparse unique index + `default: null`**: `User.googleId` originally had `default: null`, which
   writes an explicit `null` onto every local-auth user — a sparse index only excludes fields that
@@ -291,8 +392,8 @@ via Rollup's default splitting — no manual `vite.config.js` chunk tuning neede
   ownership-scoped RBAC.
 - **Phase 4 (dashboards, calendar, analytics)** — complete and verified: role-aware dashboards
   (Admin/Organizer/Employee, each with real composed data, no fake numbers), a Month+Agenda
-  calendar (Week view deliberately cut — `startTime`/`endTime` are free-text strings, not
-  structured enough for hour-grid layout), org- and event-level analytics with `recharts` charts,
+  calendar (Week view deliberately cut. When it was written `startTime`/`endTime` were free text;
+  they are now validated `HH:mm`, so it is buildable if wanted), org- and event-level analytics with `recharts` charts,
   and attendance marking feeding a real (not hardcoded) attendance rate.
 - **Phase 5 (notifications, audit log browser, search/filter/pagination)** — complete and
   verified: a real in-app notification inbox (bell + dropdown + dedicated page) driven by 7
@@ -338,9 +439,23 @@ via Rollup's default splitting — no manual `vite.config.js` chunk tuning neede
   (`client/src/assets/loading.json` via `lottie-react`'s `LottieLight`, reduced-motion-aware) were
   also added this phase — see Known Issues above for two real bugs each of those surfaced.
 
-**Deferred, not yet started:** a dedicated UI visual-design pass — the current design was flagged
-by the user as "too generic," explicitly saved for after Phase 7. Needs a fresh go-ahead before
-starting. Pushing the git history to the configured `origin` remote (`nithishganji77-lgtm/
-Event-forge`) has also not been requested — nothing has been pushed yet.
+- **Post-Phase-7 redesign** — complete and verified, one commit per workstream: time-aware event
+  lifecycle (persisted instants, DST-safe, backfill, filters that compose), the dashboard summary
+  endpoint and audit titles, the border-layer fix, in-app surface / radius tokens and a
+  light / dark / system theme, the app shell, banner event cards with honest status and a "⋯" menu,
+  role-aware manager and employee dashboards, and the event page as a workspace. Verified in real
+  browsers at 1440 and 390 in light, dark and reduced motion, for admin / organizer / employee on
+  `seed:demo` data plus a brand-new account through every empty state and the full wizard. That pass
+  found and fixed two pre-existing bugs (the invites 500, and role-blocked pages that were still
+  reachable by URL) and a stored-link XSS vector. Tests: server 125, client 244; the server suite
+  also passes under `TZ=UTC` and `TZ=America/Los_Angeles`. `security-review` ran twice (backend
+  lifecycle + summary endpoint, then the whole redesign diff including the frontend) and returned
+  zero findings; the stored-link vector above was fixed before the second run, not found by it.
 
-Demo login: `ava@eventforge.dev` / `Demo@1234` (from `npm run seed`).
+**Not done / not requested:** pushing the git history to the configured `origin` remote
+(`nithishganji77-lgtm/Event-forge`) — nothing has been pushed. The per-IP `apiLimiter` (300 / 15 min)
+will bite an office of many people behind one NAT address; keying it by user is a possible follow-up.
+
+Demo login: `ava@eventforge.dev` / `Demo@1234` (from `npm run seed`). `npm run seed:demo` adds
+`demo.admin` / `demo.orgadmin` / `demo.organizer` / `demo.employee` `@eventforge.dev`, same password,
+in the "Northwind Events" organization.
