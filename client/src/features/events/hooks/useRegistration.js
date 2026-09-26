@@ -20,6 +20,7 @@ function useInvalidateRegistration(eventId) {
 export function useRegister(eventId) {
   const invalidate = useInvalidateRegistration(eventId);
   return useMutation({
+    meta: { errorToast: 'Could not register you for this event' },
     mutationFn: () => registerForEventRequest(eventId),
     onSuccess: invalidate,
   });
@@ -28,6 +29,7 @@ export function useRegister(eventId) {
 export function useCancelRegistration(eventId) {
   const invalidate = useInvalidateRegistration(eventId);
   return useMutation({
+    meta: { errorToast: 'Could not cancel your registration' },
     mutationFn: () => cancelRegistrationRequest(eventId),
     onSuccess: invalidate,
   });

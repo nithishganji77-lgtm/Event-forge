@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QueryError } from '../../../components/ui/QueryError.jsx';
 import { Trash2 } from 'lucide-react';
 import { useMembers } from '../hooks/useMembers.js';
 import { useUpdateMemberRole, useUpdateMemberStatus } from '../hooks/useUpdateMember.js';
@@ -11,11 +12,9 @@ import { Button } from '../../../components/ui/Button.jsx';
 import { Pagination } from '../../../components/ui/Pagination.jsx';
 import { EmptyState } from '../../../components/ui/EmptyState.jsx';
 import { Spinner } from '../../../components/ui/Spinner.jsx';
-import { Alert } from '../../../components/ui/Alert.jsx';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue.js';
 import { useActiveOrganization } from '../../../hooks/useActiveOrganization.js';
 import { PERMISSIONS } from '../../../utils/permissions.js';
-import { extractErrorMessage } from '../../../lib/axios.js';
 
 export function MembersTable() {
   const { organizationId, permissions } = useActiveOrganization();
@@ -28,7 +27,7 @@ export function MembersTable() {
   const search = useDebouncedValue(searchInput);
   const filters = { page, limit: 20, search: search || undefined, role: role || undefined, status: status || undefined };
 
-  const { data, isLoading, isError, error } = useMembers(organizationId, filters);
+  const { data, isLoading, isError, error, refetch, isFetching } = useMembers(organizationId, filters);
   const updateRole = useUpdateMemberRole(organizationId);
   const updateStatus = useUpdateMemberStatus(organizationId);
 
@@ -60,7 +59,7 @@ export function MembersTable() {
         </Select>
       </div>
 
-      {isError && <Alert tone="error">{extractErrorMessage(error, 'Could not load members')}</Alert>}
+      {isError && <QueryError error={error} title="We couldn't load the members" onRetry={refetch} isRetrying={isFetching} />}
       {isLoading && <Spinner />}
 
       {data && data.data.length === 0 && (

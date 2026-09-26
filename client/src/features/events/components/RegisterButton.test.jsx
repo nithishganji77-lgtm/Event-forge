@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { toast } from 'sonner';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { screen, waitFor, render } from '@testing-library/react';
@@ -94,5 +95,35 @@ describe('RegisterButton branch matrix', () => {
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(cancelCalled).toBe(true));
+  });
+  // Registering used to fail with nothing on screen: a closed event, a lost connection, a 500.
+  it('tells the person when registering fails, and why', async () => {
+    const user = userEvent.setup();
+    const toastSpy = vi.spyOn(toast, 'error').mockImplementation(() => {});
+    server.use(
+      http.post(`${BASE}/events/event-1/register`, () =>
+        HttpResponse.json({ success: false, error: { message: 'Registration for this event is closed.' } }, { status: 409 })
+      )
+    );
+    renderButton(baseEvent);
+
+    await user.click(screen.getByRole('button', { name: /register/i }));
+    await waitFor(() =>
+      expect(toastSpy).toHaveBeenCalledWith('Could not register you for this event', { description: 'Registration for this event is closed.' })
+    );
+    toastSpy.mockRestore();
+  });
+
+  it('tells the person when cancelling a registration fails', async () => {
+    const user = userEvent.setup();
+    const toastSpy = vi.spyOn(toast, 'error').mockImplementation(() => {});
+    server.use(http.delete(`${BASE}/events/event-1/register`, () => HttpResponse.error()));
+    renderButton({ ...baseEvent, myRegistrationStatus: 'REGISTERED' });
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(toastSpy).toHaveBeenCalled());
+    expect(toastSpy.mock.calls[0][0]).toBe('Could not cancel your registration');
+    expect(toastSpy.mock.calls[0][1].description).toMatch(/can't reach EventForge/i);
+    toastSpy.mockRestore();
   });
 });

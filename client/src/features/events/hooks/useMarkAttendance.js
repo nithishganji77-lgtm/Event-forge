@@ -5,6 +5,7 @@ import { QUERY_KEYS } from '../../../utils/constants.js';
 export function useMarkAttendance(eventId) {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { errorToast: 'Could not save attendance' },
     mutationFn: ({ registrationId, attendanceStatus }) =>
       markAttendanceRequest(eventId, registrationId, attendanceStatus),
     onSuccess: () => {

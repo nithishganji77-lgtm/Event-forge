@@ -41,7 +41,7 @@ export function LoginForm() {
       )}
 
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-      {login.isError && <Alert tone="error">{extractErrorMessage(login.error, 'Login failed')}</Alert>}
+      {login.isError && <Alert tone="error">{extractErrorMessage(login.error, 'We could not sign you in. Please try again.')}</Alert>}
 
       <FormField
         label="Email"

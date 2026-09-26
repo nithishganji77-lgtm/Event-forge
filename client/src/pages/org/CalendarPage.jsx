@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QueryError } from '../../components/ui/QueryError.jsx';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCalendarEvents } from '../../features/calendar/hooks/useCalendarEvents.js';
 import { MonthView } from '../../features/calendar/components/MonthView.jsx';
@@ -6,9 +7,7 @@ import { AgendaView } from '../../features/calendar/components/AgendaView.jsx';
 import { Tabs, tabId, panelId } from '../../components/ui/Tabs.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
-import { Alert } from '../../components/ui/Alert.jsx';
 import { useActiveOrganization } from '../../hooks/useActiveOrganization.js';
-import { extractErrorMessage } from '../../lib/axios.js';
 
 // Month + Agenda only — Week view was cut in Phase 4 because startTime/endTime were free-text
 // strings. They are now validated "HH:mm" wall-clock times (interpreted in event.timezone), so a
@@ -19,7 +18,7 @@ export function CalendarPage() {
   const [monthDate, setMonthDate] = useState(() => new Date());
   const [view, setView] = useState('month');
 
-  const { data, isLoading, isError, error } = useCalendarEvents(organizationId, monthDate);
+  const { data, isLoading, isError, error, refetch, isFetching } = useCalendarEvents(organizationId, monthDate);
 
   function shiftMonth(delta) {
     setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() + delta, 1));
@@ -54,7 +53,7 @@ export function CalendarPage() {
         onChange={setView}
       />
 
-      {isError && <Alert tone="error">{extractErrorMessage(error, 'Could not load events')}</Alert>}
+      {isError && <QueryError error={error} title="We couldn't load the calendar" onRetry={refetch} isRetrying={isFetching} />}
       {isLoading && <Spinner />}
 
       {data && view === 'month' && (

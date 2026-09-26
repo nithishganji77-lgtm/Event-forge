@@ -41,7 +41,7 @@ export function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit((values) => mutation.mutate(values))} className="space-y-5" noValidate>
       {mutation.isError && (
-        <Alert tone="error">{extractErrorMessage(mutation.error, 'Could not reset password')}</Alert>
+        <Alert tone="error">{extractErrorMessage(mutation.error, 'We could not reset your password. Please try again.')}</Alert>
       )}
 
       <FormField

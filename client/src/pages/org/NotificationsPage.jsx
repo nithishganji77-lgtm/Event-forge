@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QueryError } from '../../components/ui/QueryError.jsx';
 import { useMyNotifications } from '../../features/notifications/hooks/useMyNotifications.js';
 import { useMarkNotificationRead } from '../../features/notifications/hooks/useMarkNotificationRead.js';
 import { useMarkAllNotificationsRead } from '../../features/notifications/hooks/useMarkAllNotificationsRead.js';
@@ -6,9 +7,7 @@ import { NotificationItem } from '../../features/notifications/components/Notifi
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
-import { Alert } from '../../components/ui/Alert.jsx';
 import { Button } from '../../components/ui/Button.jsx';
-import { extractErrorMessage } from '../../lib/axios.js';
 
 // Deliberately not filtered to the currently-viewed org (unlike /me/events) — hiding unread items
 // from a different org while viewing this one would be actively confusing. Each row renders its
@@ -18,7 +17,7 @@ export function NotificationsPage() {
   const [unreadOnly, setUnreadOnly] = useState(false);
 
   const filters = { page, limit: 20, unreadOnly };
-  const { data, isLoading, isError, error } = useMyNotifications(filters);
+  const { data, isLoading, isError, error, refetch, isFetching } = useMyNotifications(filters);
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
 
@@ -48,7 +47,7 @@ export function NotificationsPage() {
         </button>
       </div>
 
-      {isError && <Alert tone="error">{extractErrorMessage(error, 'Could not load notifications')}</Alert>}
+      {isError && <QueryError error={error} title="We couldn't load your notifications" onRetry={refetch} isRetrying={isFetching} />}
       {isLoading && <Spinner />}
 
       {data && data.data.length === 0 && (

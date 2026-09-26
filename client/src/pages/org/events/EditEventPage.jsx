@@ -2,15 +2,27 @@ import { useParams } from 'react-router-dom';
 import { useEvent } from '../../../features/events/hooks/useEvent.js';
 import { EventWizard } from '../../../features/events/components/EventWizard/EventWizard.jsx';
 import { Spinner } from '../../../components/ui/Spinner.jsx';
-import { Alert } from '../../../components/ui/Alert.jsx';
-import { extractErrorMessage } from '../../../lib/axios.js';
+import { QueryError } from '../../../components/ui/QueryError.jsx';
+import { useActiveOrganization } from '../../../hooks/useActiveOrganization.js';
+import { ROUTES } from '../../../utils/constants.js';
 
 export function EditEventPage() {
   const { eventId } = useParams();
-  const { data: event, isLoading, isError, error } = useEvent(eventId);
+  const { organizationSlug } = useActiveOrganization();
+  const { data: event, isLoading, isError, error, refetch, isFetching } = useEvent(eventId);
 
   if (isLoading) return <Spinner />;
-  if (isError) return <Alert tone="error">{extractErrorMessage(error, 'Could not load event')}</Alert>;
+  if (isError) {
+    return (
+      <QueryError
+        error={error}
+        title="We couldn't open this event to edit it"
+        onRetry={refetch}
+        isRetrying={isFetching}
+        backTo={{ to: ROUTES.orgEvents(organizationSlug), label: 'Back to events' }}
+      />
+    );
+  }
 
   return (
     <div>

@@ -8,9 +8,11 @@ import { OrDivider } from '../../../components/ui/OrDivider.jsx';
 import { FormField } from '../../../components/ui/FormField.jsx';
 import { Button } from '../../../components/ui/Button.jsx';
 import { Alert } from '../../../components/ui/Alert.jsx';
-import { extractErrorMessage } from '../../../lib/axios.js';
+import { useServerFormErrors } from '../../../hooks/useServerFormErrors.js';
 import { ROUTES } from '../../../utils/constants.js';
 import { googleAuthEnabled } from '../../../utils/googleAuth.js';
+
+const FIELDS = ['name', 'email', 'password'];
 
 export function RegisterForm() {
   const navigate = useNavigate();
@@ -19,15 +21,20 @@ export function RegisterForm() {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: { email: searchParams.get('email') || '' },
   });
 
+  const { alertMessage, onError, clear } = useServerFormErrors(setError, FIELDS);
+
   const onSubmit = (values) => {
+    clear();
     registerUser.mutate(values, {
       onSuccess: () => navigate(ROUTES.DASHBOARD, { replace: true }),
+      onError,
     });
   };
 
@@ -41,9 +48,7 @@ export function RegisterForm() {
       )}
 
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-      {registerUser.isError && (
-        <Alert tone="error">{extractErrorMessage(registerUser.error, 'Registration failed')}</Alert>
-      )}
+      {alertMessage && <Alert tone="error">{alertMessage}</Alert>}
 
       <FormField
         label="Full name"

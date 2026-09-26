@@ -1,21 +1,20 @@
 import { useOrgAnalytics } from '../../features/analytics/hooks/useOrgAnalytics.js';
+import { QueryError } from '../../components/ui/QueryError.jsx';
 import { OrgAnalyticsGrid } from '../../features/analytics/components/OrgAnalyticsGrid.jsx';
 import { RegistrationsChart } from '../../features/analytics/components/RegistrationsChart.jsx';
 import { MostPopularEventsList } from '../../features/analytics/components/MostPopularEventsList.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
-import { Alert } from '../../components/ui/Alert.jsx';
 import { useActiveOrganization } from '../../hooks/useActiveOrganization.js';
-import { extractErrorMessage } from '../../lib/axios.js';
 
 // Trusts its gate rather than re-implementing role scoping client-side (matches AttendeesList's
 // existing pattern) — ORGANIZER sees this page too since they hold scoped ANALYTICS_READ, and the
 // API response already only reflects their own events.
 export function AnalyticsPage() {
   const { organizationId } = useActiveOrganization();
-  const { data, isLoading, isError, error } = useOrgAnalytics(organizationId);
+  const { data, isLoading, isError, error, refetch, isFetching } = useOrgAnalytics(organizationId);
 
   if (isLoading) return <Spinner />;
-  if (isError) return <Alert tone="error">{extractErrorMessage(error, 'Could not load analytics')}</Alert>;
+  if (isError) return <QueryError error={error} title="We couldn't load analytics" onRetry={refetch} isRetrying={isFetching} />;
 
   return (
     <div className="max-w-4xl space-y-8">

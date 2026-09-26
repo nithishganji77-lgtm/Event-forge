@@ -15,7 +15,7 @@ import { OrganizersStep } from './steps/OrganizersStep.jsx';
 import { ReviewStep } from './steps/ReviewStep.jsx';
 import { Button } from '../../../../components/ui/Button.jsx';
 import { Alert } from '../../../../components/ui/Alert.jsx';
-import { extractErrorMessage } from '../../../../lib/axios.js';
+import { extractErrorMessage, getErrorInfo } from '../../../../lib/errors.js';
 import { useActiveOrganization } from '../../../../hooks/useActiveOrganization.js';
 import { ROUTES } from '../../../../utils/constants.js';
 
@@ -97,6 +97,20 @@ export function EventWizard({ mode, event }) {
     queryClient.invalidateQueries({ queryKey: ['events', eventId] });
   }
 
+  // The server validates everything again. If it objects to a field on an earlier step, mark that
+  // field and take the person to the step it is on; otherwise they would be looking at the Review
+  // screen with a message about a field they can't see.
+  function revealServerErrors(err) {
+    const { fieldErrors } = getErrorInfo(err);
+    let firstStep = -1;
+    for (const [path, message] of Object.entries(fieldErrors)) {
+      form.setError(path, { type: 'server', message });
+      const stepIndex = STEPS.findIndex((step) => STEP_FIELDS[step.key].some((field) => path === field || path.startsWith(`${field}.`)));
+      if (stepIndex !== -1 && (firstStep === -1 || stepIndex < firstStep)) firstStep = stepIndex;
+    }
+    if (firstStep !== -1) setCurrentStep(firstStep);
+  }
+
   async function goNext() {
     const valid = await trigger(STEP_FIELDS[STEPS[currentStep].key]);
     if (valid) setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -114,7 +128,9 @@ export function EventWizard({ mode, event }) {
     const created = await createEvent.mutateAsync(payload);
     if (coverImageFile) {
       await uploadCoverImageRequest(created._id, coverImageFile).catch(() => {
-        toast.error('Event saved, but the cover image failed to upload — try again from the editor.');
+        toast.error('The event was saved, but its cover image could not be uploaded', {
+          description: 'Open the event and try adding the image again.',
+        });
       });
     }
     return created;
@@ -129,6 +145,7 @@ export function EventWizard({ mode, event }) {
       navigate(ROUTES.orgEventEdit(organizationSlug, saved._id), { replace: true });
     } catch (err) {
       setSubmitError(err);
+      revealServerErrors(err);
     } finally {
       setActiveAction(null);
     }
@@ -142,6 +159,7 @@ export function EventWizard({ mode, event }) {
       saved = await persistEvent(values);
     } catch (err) {
       setSubmitError(err);
+      revealServerErrors(err);
       setActiveAction(null);
       return;
     }
@@ -154,7 +172,7 @@ export function EventWizard({ mode, event }) {
       // The create/update already succeeded — don't orphan the user on a dead page, send them to
       // the now-existing draft's editor instead. A toast (not local state) carries the error,
       // since navigating unmounts this component before any inline Alert could be seen.
-      toast.error(extractErrorMessage(err, 'Event saved as a draft, but publishing failed'));
+      toast.error('The event was saved as a draft, but it could not be published', { description: extractErrorMessage(err) });
       invalidateEventQueries(saved._id);
       navigate(ROUTES.orgEventEdit(organizationSlug, saved._id), { replace: true });
     } finally {
@@ -171,7 +189,7 @@ export function EventWizard({ mode, event }) {
 
         {submitError && (
           <Alert tone="error" className="mb-6">
-            {extractErrorMessage(submitError, 'Could not save event')}
+            {extractErrorMessage(submitError, 'The event could not be saved. Please try again.')}
           </Alert>
         )}
 

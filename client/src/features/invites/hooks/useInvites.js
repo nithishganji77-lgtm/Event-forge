@@ -32,6 +32,7 @@ export function useCreateInvite(orgId) {
 export function useResendInvite(orgId) {
   const invalidate = useInvalidateInvites(orgId);
   return useMutation({
+    meta: { errorToast: 'Could not resend the invite' },
     mutationFn: (inviteId) => resendInviteRequest(orgId, inviteId),
     onSuccess: invalidate,
   });
@@ -40,6 +41,7 @@ export function useResendInvite(orgId) {
 export function useRevokeInvite(orgId) {
   const invalidate = useInvalidateInvites(orgId);
   return useMutation({
+    meta: { errorToast: 'Could not cancel the invite' },
     mutationFn: (inviteId) => revokeInviteRequest(orgId, inviteId),
     onSuccess: invalidate,
   });

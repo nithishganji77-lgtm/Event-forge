@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QueryError } from '../../../components/ui/QueryError.jsx';
 import { useSearchParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useEvents } from '../hooks/useEvents.js';
@@ -7,9 +8,7 @@ import { EventsFilterBar, STATUS_OPTIONS } from './EventsFilterBar.jsx';
 import { Pagination } from '../../../components/ui/Pagination.jsx';
 import { EmptyState } from '../../../components/ui/EmptyState.jsx';
 import { Spinner } from '../../../components/ui/Spinner.jsx';
-import { Alert } from '../../../components/ui/Alert.jsx';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue.js';
-import { extractErrorMessage } from '../../../lib/axios.js';
 
 export function EventsList({ organizationId, emptyAction }) {
   const [searchInput, setSearchInput] = useState('');
@@ -36,7 +35,7 @@ export function EventsList({ organizationId, emptyAction }) {
   const search = useDebouncedValue(searchInput);
   const filters = { page, limit: 20, search: search || undefined, category: category || undefined, status: status || undefined };
 
-  const { data, isLoading, isError, error, isPlaceholderData } = useEvents(organizationId, filters);
+  const { data, isLoading, isError, error, isPlaceholderData, refetch, isFetching } = useEvents(organizationId, filters);
   const hasFilters = Boolean(search || category || status);
   const reduceMotion = useReducedMotion();
 
@@ -51,7 +50,7 @@ export function EventsList({ organizationId, emptyAction }) {
         onStatusChange={(v) => { setStatus(v); setPage(1); }}
       />
 
-      {isError && <Alert tone="error">{extractErrorMessage(error, 'Could not load events')}</Alert>}
+      {isError && <QueryError error={error} title="We couldn't load the events" onRetry={refetch} isRetrying={isFetching} />}
       {isLoading && <Spinner />}
 
       {data && data.data.length === 0 && (

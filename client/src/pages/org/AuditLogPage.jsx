@@ -1,14 +1,13 @@
 import { useState } from 'react';
+import { QueryError } from '../../components/ui/QueryError.jsx';
 import { useAuditLogs } from '../../features/auditLogs/hooks/useAuditLogs.js';
 import { AuditLogFilterBar } from '../../features/auditLogs/components/AuditLogFilterBar.jsx';
 import { AuditLogTable } from '../../features/auditLogs/components/AuditLogTable.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
-import { Alert } from '../../components/ui/Alert.jsx';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 import { useActiveOrganization } from '../../hooks/useActiveOrganization.js';
-import { extractErrorMessage } from '../../lib/axios.js';
 
 export function AuditLogPage() {
   const { organizationId } = useActiveOrganization();
@@ -30,7 +29,7 @@ export function AuditLogPage() {
     dateTo: dateTo || undefined,
   };
 
-  const { data, isLoading, isError, error } = useAuditLogs(organizationId, filters);
+  const { data, isLoading, isError, error, refetch, isFetching } = useAuditLogs(organizationId, filters);
 
   const resetPage = (setter) => (value) => {
     setter(value);
@@ -54,7 +53,7 @@ export function AuditLogPage() {
         onDateToChange={resetPage(setDateTo)}
       />
 
-      {isError && <Alert tone="error">{extractErrorMessage(error, 'Could not load audit log')}</Alert>}
+      {isError && <QueryError error={error} title="We couldn't load the audit log" onRetry={refetch} isRetrying={isFetching} />}
       {isLoading && <Spinner />}
 
       {data && data.data.length === 0 && (

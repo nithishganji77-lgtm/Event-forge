@@ -7,7 +7,9 @@ import { FormField } from '../../../components/ui/FormField.jsx';
 import { Select } from '../../../components/ui/Select.jsx';
 import { Button } from '../../../components/ui/Button.jsx';
 import { Alert } from '../../../components/ui/Alert.jsx';
-import { extractErrorMessage } from '../../../lib/axios.js';
+import { useServerFormErrors } from '../../../hooks/useServerFormErrors.js';
+
+const FIELDS = ['email', 'role'];
 
 export function InviteMemberForm({ orgId, onSent }) {
   const createInvite = useCreateInvite(orgId);
@@ -15,11 +17,16 @@ export function InviteMemberForm({ orgId, onSent }) {
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors },
   } = useForm({ resolver: zodResolver(createInviteSchema), defaultValues: { role: 'EMPLOYEE' } });
 
+  const { alertMessage, onError, clear } = useServerFormErrors(setError, FIELDS);
+
   const onSubmit = (values) => {
+    clear();
     createInvite.mutate(values, {
+      onError,
       onSuccess: () => {
         reset();
         if (onSent) onSent();
@@ -29,9 +36,9 @@ export function InviteMemberForm({ orgId, onSent }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-wrap items-end gap-3" noValidate>
-      {createInvite.isError && (
+      {alertMessage && (
         <Alert tone="error" className="w-full">
-          {extractErrorMessage(createInvite.error, 'Could not send invite')}
+          {alertMessage}
         </Alert>
       )}
       <div className="flex-1 min-w-[14rem]">

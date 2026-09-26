@@ -4,6 +4,7 @@ import { markNotificationReadRequest } from '../../../services/notification.serv
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { errorToast: 'Could not update your notifications' },
     mutationFn: (notificationId) => markNotificationReadRequest(notificationId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me', 'notifications'] }),
   });

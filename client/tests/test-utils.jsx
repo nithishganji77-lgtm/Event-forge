@@ -2,11 +2,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { render } from '@testing-library/react';
 import { QUERY_KEYS } from '../src/utils/constants.js';
+import { createMutationCache } from '../src/lib/queryClient.js';
 
 // No existing test-QueryClient factory anywhere in the app (confirmed) — retry:false everywhere
 // so a deliberately-failing mock response doesn't retry and slow the test down.
 export function createTestQueryClient() {
   return new QueryClient({
+    // The app's own mutation cache, so a mutation tagged for an error toast toasts under test too.
+    mutationCache: createMutationCache(),
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },

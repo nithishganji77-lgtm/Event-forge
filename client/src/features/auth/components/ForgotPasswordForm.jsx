@@ -35,7 +35,7 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit((values) => mutation.mutate(values))} className="space-y-5" noValidate>
       {mutation.isError && (
-        <Alert tone="error">{extractErrorMessage(mutation.error, 'Could not send reset link')}</Alert>
+        <Alert tone="error">{extractErrorMessage(mutation.error, 'We could not send the reset link. Please try again.')}</Alert>
       )}
 
       <FormField

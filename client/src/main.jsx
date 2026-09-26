@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { queryClient } from './lib/queryClient.js'
 import { GOOGLE_CLIENT_ID, googleAuthEnabled } from './utils/googleAuth.js'
+import './lib/zodMessages.js'
 import './styles/globals.css'
 import App from './App.jsx'
 

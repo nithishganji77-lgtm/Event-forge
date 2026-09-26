@@ -74,7 +74,7 @@ describe('EventWizard', () => {
 
     await user.click(screen.getByRole('button', { name: /next/i }));
 
-    expect(await screen.findByText('Title is too short')).toBeInTheDocument();
+    expect(await screen.findByText('Give the event a name (at least 2 characters)')).toBeInTheDocument();
     expect(screen.getByLabelText('Event name')).toBeInTheDocument();
     expect(screen.queryByLabelText('Start date')).not.toBeInTheDocument();
   });
@@ -122,8 +122,39 @@ describe('EventWizard', () => {
     await user.click(screen.getByRole('button', { name: /publish/i }));
 
     await waitFor(() => expect(screen.getByText('EVENT EDIT PAGE')).toBeInTheDocument());
-    expect(toastErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Publish failed'));
+    // What failed, then the server's reason.
+    expect(toastErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('could not be published'),
+      expect.objectContaining({ description: 'Publish failed' })
+    );
 
     toastErrorSpy.mockRestore();
+  });
+  it('takes the person to the step with the field the server objected to, and marks it', async () => {
+    const user = userEvent.setup();
+    server.use(
+      membersHandler(),
+      http.post(`${BASE}/organizations/:orgId/events`, () =>
+        HttpResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Map link must be a link starting with http:// or https://',
+              details: [{ path: 'venue.mapUrl', message: 'Map link must be a link starting with http:// or https://' }],
+            },
+          },
+          { status: 400 }
+        )
+      )
+    );
+
+    renderWizard();
+    await goToReviewStep(user);
+    await user.click(screen.getByRole('button', { name: /publish/i }));
+
+    // Back on the Date & venue step, where the map link is, with the reason beside it.
+    expect(await screen.findByLabelText('Map link')).toBeInTheDocument();
+    expect(screen.getAllByText('Map link must be a link starting with http:// or https://').length).toBeGreaterThan(0);
   });
 });

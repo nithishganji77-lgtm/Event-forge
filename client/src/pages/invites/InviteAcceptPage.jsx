@@ -88,7 +88,7 @@ export function InviteAcceptPage() {
       description={`You've been invited as ${preview.role.replace('_', ' ').toLowerCase()}.`}
     >
       {acceptInvite.isError && (
-        <Alert tone="error">{extractErrorMessage(acceptInvite.error, 'Could not accept invite')}</Alert>
+        <Alert tone="error">{extractErrorMessage(acceptInvite.error, 'We could not accept the invite. Please try again.')}</Alert>
       )}
       <Button
         variant="accent"

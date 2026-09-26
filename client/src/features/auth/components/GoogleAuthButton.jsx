@@ -14,7 +14,7 @@ export function GoogleAuthButton() {
   return (
     <div className="space-y-3">
       {googleAuth.isError && (
-        <Alert tone="error">{extractErrorMessage(googleAuth.error, 'Google sign-in failed')}</Alert>
+        <Alert tone="error">{extractErrorMessage(googleAuth.error, 'Google sign-in did not work. Please try again.')}</Alert>
       )}
       <GoogleLogin
         onSuccess={(credentialResponse) => {

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createOrganizationSchema = z.object({
-  name: z.string().trim().min(2, 'Organization name is too short').max(160),
+  name: z.string().trim().min(2, 'Give the organization a name (at least 2 characters)').max(160),
   description: z.string().trim().max(2000).optional(),
 });
 

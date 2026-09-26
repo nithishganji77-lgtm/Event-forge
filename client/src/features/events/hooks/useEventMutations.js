@@ -48,6 +48,7 @@ export function useDeleteEvent(orgId, eventId) {
 export function usePublishEvent(orgId, eventId) {
   const invalidate = useInvalidateEvents(orgId, eventId);
   return useMutation({
+    meta: { errorToast: 'Could not publish this event' },
     mutationFn: () => publishEventRequest(eventId),
     onSuccess: invalidate,
   });

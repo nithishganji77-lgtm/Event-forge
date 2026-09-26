@@ -9,6 +9,7 @@ function useInvalidateMembers(orgId) {
 export function useUpdateMemberRole(orgId) {
   const invalidate = useInvalidateMembers(orgId);
   return useMutation({
+    meta: { errorToast: "Could not change that member's role" },
     mutationFn: ({ memberId, role }) => updateMemberRequest(orgId, memberId, { role }),
     onSuccess: invalidate,
   });
@@ -17,6 +18,7 @@ export function useUpdateMemberRole(orgId) {
 export function useUpdateMemberStatus(orgId) {
   const invalidate = useInvalidateMembers(orgId);
   return useMutation({
+    meta: { errorToast: 'Could not update that member' },
     mutationFn: ({ memberId, status }) => updateMemberStatusRequest(orgId, memberId, status),
     onSuccess: invalidate,
   });

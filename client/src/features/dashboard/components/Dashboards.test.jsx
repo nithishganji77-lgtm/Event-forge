@@ -243,7 +243,8 @@ describe('ManagerDashboard', () => {
     serveDashboard();
     server.use(http.get(`${BASE}/organizations/${ORG}/analytics/dashboard`, () => HttpResponse.json({ success: false }, { status: 500 })));
     renderManager('SUPER_ADMIN', { id: 'user-1', name: 'Riya Kapoor', email: 'r@example.com' });
-    expect(await screen.findByText(/Could not load your summary/)).toBeInTheDocument();
+    expect(await screen.findByText(/couldn't load your summary/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
   });
 });
 

@@ -28,7 +28,7 @@ export function CoverImageUpload({ eventId, currentUrl, onFileSelected }) {
 
   return (
     <div className="space-y-3">
-      {upload?.isError && <Alert tone="error">{extractErrorMessage(upload.error, 'Could not upload image')}</Alert>}
+      {upload?.isError && <Alert tone="error">{extractErrorMessage(upload.error, 'The image could not be uploaded. Please try again.')}</Alert>}
       <button
         type="button"
         onClick={() => inputRef.current?.click()}

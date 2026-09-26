@@ -26,11 +26,11 @@ const venueSchema = z.object({
 // convention as utils/permissions.js; the backend remains authoritative.
 export const eventFormSchema = z
   .object({
-    title: z.string().trim().min(2, 'Title is too short').max(200),
+    title: z.string().trim().min(2, 'Give the event a name (at least 2 characters)').max(200),
     description: z.string().trim().max(5000).optional(),
     category: z.string().trim().max(60).optional(),
-    startDate: z.string().min(1, 'Start date is required'),
-    endDate: z.string().min(1, 'End date is required'),
+    startDate: z.string().min(1, 'Choose a start date'),
+    endDate: z.string().min(1, 'Choose an end date'),
     startTime: timeOfDay.optional(),
     endTime: timeOfDay.optional(),
     timezone: z

@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom';
+import { QueryError } from '../../../components/ui/QueryError.jsx';
 import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarClock, CheckCheck, FileEdit, Plus } from 'lucide-react';
 import { useEvents } from '../../events/hooks/useEvents.js';
@@ -6,12 +7,10 @@ import { EventCard } from '../../events/components/EventCard.jsx';
 import { Tabs, tabId, panelId } from '../../../components/ui/Tabs.jsx';
 import { EmptyState } from '../../../components/ui/EmptyState.jsx';
 import { Button } from '../../../components/ui/Button.jsx';
-import { Alert } from '../../../components/ui/Alert.jsx';
 import { Spinner } from '../../../components/ui/Spinner.jsx';
 import { useActiveOrganization } from '../../../hooks/useActiveOrganization.js';
 import { PERMISSIONS } from '../../../utils/permissions.js';
 import { ROUTES } from '../../../utils/constants.js';
-import { extractErrorMessage } from '../../../lib/axios.js';
 
 const TAB_ID = 'dashboard-events';
 
@@ -70,7 +69,7 @@ export function EventsSection({ organizationId, organizer }) {
   }
 
   // 4 = a 2x2 grid in the main column: enough to read at a glance, and "View all" is one click away.
-  const { data, isLoading, isError, error, isPlaceholderData } = useEvents(organizationId, {
+  const { data, isLoading, isError, error, isPlaceholderData, refetch, isFetching } = useEvents(organizationId, {
     status: active.status,
     sort: active.sort,
     limit: 4,
@@ -100,7 +99,7 @@ export function EventsSection({ organizationId, organizer }) {
       <Tabs id={TAB_ID} tabs={TABS} active={active.key} onChange={setTab} />
 
       <div id={panelId(TAB_ID, active.key)} role="tabpanel" aria-labelledby={tabId(TAB_ID, active.key)}>
-        {isError && <Alert tone="error">{extractErrorMessage(error, 'Could not load events')}</Alert>}
+        {isError && <QueryError error={error} title="We couldn't load your events" onRetry={refetch} isRetrying={isFetching} />}
         {isLoading && <Spinner />}
 
         {data && events.length === 0 && (

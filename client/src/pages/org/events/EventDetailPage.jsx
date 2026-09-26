@@ -12,11 +12,10 @@ import { AttendeesList } from '../../../features/events/components/AttendeesList
 import { EventAnalyticsPanel } from '../../../features/analytics/components/EventAnalyticsPanel.jsx';
 import { Tabs, tabId, panelId } from '../../../components/ui/Tabs.jsx';
 import { Spinner } from '../../../components/ui/Spinner.jsx';
-import { Alert } from '../../../components/ui/Alert.jsx';
+import { QueryError } from '../../../components/ui/QueryError.jsx';
 import { useActiveOrganization } from '../../../hooks/useActiveOrganization.js';
 import { useEventPermissions } from '../../../hooks/useEventPermissions.js';
 import { ROUTES } from '../../../utils/constants.js';
-import { extractErrorMessage } from '../../../lib/axios.js';
 
 const TAB_ID = 'event-detail';
 
@@ -26,13 +25,23 @@ const TAB_ID = 'event-detail';
 export function EventDetailPage() {
   const { eventId } = useParams();
   const { organizationId, organizationSlug } = useActiveOrganization();
-  const { data: event, isLoading, isError, error } = useEvent(eventId);
+  const { data: event, isLoading, isError, error, refetch, isFetching } = useEvent(eventId);
   const perms = useEventPermissions(event);
   const publishEvent = usePublishEvent(organizationId, eventId);
   const [searchParams, setSearchParams] = useSearchParams();
 
   if (isLoading) return <Spinner />;
-  if (isError) return <Alert tone="error">{extractErrorMessage(error, 'Could not load event')}</Alert>;
+  if (isError) {
+    return (
+      <QueryError
+        error={error}
+        title="We couldn't open this event"
+        onRetry={refetch}
+        isRetrying={isFetching}
+        backTo={{ to: ROUTES.orgEvents(organizationSlug), label: 'Back to events' }}
+      />
+    );
+  }
 
   const { canManage, canViewAttendees, canViewAnalytics } = perms;
 

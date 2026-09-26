@@ -6,8 +6,10 @@ import { useCreateOrganization } from '../hooks/useCreateOrganization.js';
 import { FormField } from '../../../components/ui/FormField.jsx';
 import { Button } from '../../../components/ui/Button.jsx';
 import { Alert } from '../../../components/ui/Alert.jsx';
-import { extractErrorMessage } from '../../../lib/axios.js';
+import { useServerFormErrors } from '../../../hooks/useServerFormErrors.js';
 import { ROUTES } from '../../../utils/constants.js';
+
+const FIELDS = ['name', 'description'];
 
 export function CreateOrganizationForm({ onCreated }) {
   const navigate = useNavigate();
@@ -15,11 +17,15 @@ export function CreateOrganizationForm({ onCreated }) {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm({ resolver: zodResolver(createOrganizationSchema) });
+  const { alertMessage, onError, clear } = useServerFormErrors(setError, FIELDS);
 
   const onSubmit = (values) => {
+    clear();
     createOrganization.mutate(values, {
+      onError,
       onSuccess: ({ organization }) => {
         if (onCreated) onCreated(organization);
         else navigate(ROUTES.orgDashboard(organization.slug), { replace: true });
@@ -29,9 +35,7 @@ export function CreateOrganizationForm({ onCreated }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-      {createOrganization.isError && (
-        <Alert tone="error">{extractErrorMessage(createOrganization.error, 'Could not create organization')}</Alert>
-      )}
+      {alertMessage && <Alert tone="error">{alertMessage}</Alert>}
 
       <FormField
         label="Organization name"

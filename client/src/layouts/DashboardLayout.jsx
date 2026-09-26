@@ -1,5 +1,7 @@
 import { Suspense, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { PageErrorBoundary } from '../components/PageErrorBoundary.jsx';
+import { OfflineBanner } from '../components/OfflineBanner.jsx';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Logo } from '../components/Logo.jsx';
@@ -10,12 +12,14 @@ import { MobileNavDrawer } from './MobileNavDrawer.jsx';
 import { UserMenu } from './UserMenu.jsx';
 import { Spinner } from '../components/ui/Spinner.jsx';
 import { useActiveOrganization } from '../hooks/useActiveOrganization.js';
+import { ROUTES } from '../utils/constants.js';
 import { useSidebarCollapsed } from '../hooks/useSidebarCollapsed.js';
 import { cn } from '../lib/cn.js';
 
 export function DashboardLayout() {
   const { organizationSlug } = useActiveOrganization();
   const location = useLocation();
+  const homePath = ROUTES.orgDashboard(organizationSlug);
   const reduceMotion = useReducedMotion();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, toggleCollapsed] = useSidebarCollapsed();
@@ -104,6 +108,8 @@ export function DashboardLayout() {
         </header>
 
         <main id="main-content" className="flex-1 p-4 sm:p-8">
+          <OfflineBanner />
+          <PageErrorBoundary resetKey={location.pathname} homeTo={homePath}>
           <Suspense fallback={<Spinner />}>
             <AnimatePresence mode="wait">
               <motion.div
@@ -117,6 +123,7 @@ export function DashboardLayout() {
               </motion.div>
             </AnimatePresence>
           </Suspense>
+          </PageErrorBoundary>
         </main>
       </div>
     </div>

@@ -42,6 +42,5 @@ api.interceptors.response.use(
   }
 );
 
-export function extractErrorMessage(error, fallback = 'Something went wrong') {
-  return error?.response?.data?.error?.message || fallback;
-}
+// Kept importable from here: every caller already did. The logic lives in lib/errors.js.
+export { extractErrorMessage } from './errors.js';

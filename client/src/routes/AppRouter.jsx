@@ -4,6 +4,7 @@ import { ProtectedRoute } from './ProtectedRoute.jsx';
 import { GuestRoute } from './GuestRoute.jsx';
 import { OrgLayoutRoute } from './OrgLayoutRoute.jsx';
 import { RequireAccess } from '../components/RequireAccess.jsx';
+import { RouteError } from '../components/RouteError.jsx';
 import { Spinner } from '../components/ui/Spinner.jsx';
 import { ROUTES } from '../utils/constants.js';
 import { PERMISSIONS } from '../utils/permissions.js';
@@ -55,97 +56,103 @@ const NotFoundPage = lazy(() => import('../pages/NotFoundPage.jsx').then((m) => 
 
 const router = createBrowserRouter([
   {
-    path: ROUTES.HOME,
-    element: (
-      <Suspense fallback={<Spinner />}>
-        <LandingPage />
-      </Suspense>
-    ),
-  },
-  {
-    element: <GuestRoute />,
+    // A pathless root so one errorElement covers every route below it.
+    errorElement: <RouteError />,
     children: [
-      { path: ROUTES.LOGIN, element: <LoginPage /> },
-      { path: ROUTES.REGISTER, element: <RegisterPage /> },
-      { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordPage /> },
-      { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordPage /> },
-    ],
-  },
-  // Must work whether or not the visitor is currently logged in — outside Guest/Protected.
-  {
-    path: ROUTES.INVITE_ACCEPT,
-    element: (
-      <Suspense fallback={<Spinner />}>
-        <InviteAcceptPage />
-      </Suspense>
-    ),
-  },
-  {
-    element: <ProtectedRoute />,
-    children: [
-      { path: ROUTES.DASHBOARD, element: <DashboardRedirect /> },
-      { path: ROUTES.ONBOARDING, element: <OnboardingPage /> },
       {
-        path: '/org/:orgSlug',
-        element: <OrgLayoutRoute />,
+        path: ROUTES.HOME,
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <LandingPage />
+          </Suspense>
+        ),
+      },
+      {
+        element: <GuestRoute />,
         children: [
-          { path: 'dashboard', element: <DashboardPage /> },
-          { path: 'members', element: <MembersPage /> },
-          {
-            path: 'settings',
-            element: (
-              <RequireAccess permission={PERMISSIONS.ORGANIZATION_UPDATE}>
-                <OrganizationSettingsPage />
-              </RequireAccess>
-            ),
-          },
-          { path: 'events', element: <EventsListPage /> },
-          {
-            path: 'events/new',
-            element: (
-              <RequireAccess permission={PERMISSIONS.EVENT_CREATE}>
-                <CreateEventPage />
-              </RequireAccess>
-            ),
-          },
-          { path: 'events/:eventId', element: <EventDetailPage /> },
-          {
-            path: 'events/:eventId/edit',
-            element: (
-              <RequireAccess permission={PERMISSIONS.EVENT_UPDATE}>
-                <EditEventPage />
-              </RequireAccess>
-            ),
-          },
-          { path: 'calendar', element: <CalendarPage /> },
-          {
-            path: 'analytics',
-            element: (
-              <RequireAccess permission={PERMISSIONS.ANALYTICS_READ}>
-                <AnalyticsPage />
-              </RequireAccess>
-            ),
-          },
-          {
-            path: 'audit-logs',
-            element: (
-              <RequireAccess permission={PERMISSIONS.AUDIT_READ}>
-                <AuditLogPage />
-              </RequireAccess>
-            ),
-          },
-          { path: 'notifications', element: <NotificationsPage /> },
+          { path: ROUTES.LOGIN, element: <LoginPage /> },
+          { path: ROUTES.REGISTER, element: <RegisterPage /> },
+          { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordPage /> },
+          { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordPage /> },
         ],
       },
+      // Must work whether or not the visitor is currently logged in — outside Guest/Protected.
+      {
+        path: ROUTES.INVITE_ACCEPT,
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <InviteAcceptPage />
+          </Suspense>
+        ),
+      },
+      {
+        element: <ProtectedRoute />,
+        children: [
+          { path: ROUTES.DASHBOARD, element: <DashboardRedirect /> },
+          { path: ROUTES.ONBOARDING, element: <OnboardingPage /> },
+          {
+            path: '/org/:orgSlug',
+            element: <OrgLayoutRoute />,
+            children: [
+              { path: 'dashboard', element: <DashboardPage /> },
+              { path: 'members', element: <MembersPage /> },
+              {
+                path: 'settings',
+                element: (
+                  <RequireAccess permission={PERMISSIONS.ORGANIZATION_UPDATE}>
+                    <OrganizationSettingsPage />
+                  </RequireAccess>
+                ),
+              },
+              { path: 'events', element: <EventsListPage /> },
+              {
+                path: 'events/new',
+                element: (
+                  <RequireAccess permission={PERMISSIONS.EVENT_CREATE}>
+                    <CreateEventPage />
+                  </RequireAccess>
+                ),
+              },
+              { path: 'events/:eventId', element: <EventDetailPage /> },
+              {
+                path: 'events/:eventId/edit',
+                element: (
+                  <RequireAccess permission={PERMISSIONS.EVENT_UPDATE}>
+                    <EditEventPage />
+                  </RequireAccess>
+                ),
+              },
+              { path: 'calendar', element: <CalendarPage /> },
+              {
+                path: 'analytics',
+                element: (
+                  <RequireAccess permission={PERMISSIONS.ANALYTICS_READ}>
+                    <AnalyticsPage />
+                  </RequireAccess>
+                ),
+              },
+              {
+                path: 'audit-logs',
+                element: (
+                  <RequireAccess permission={PERMISSIONS.AUDIT_READ}>
+                    <AuditLogPage />
+                  </RequireAccess>
+                ),
+              },
+              { path: 'notifications', element: <NotificationsPage /> },
+            ],
+          },
+        ],
+      },
+      {
+        path: '*',
+        element: (
+          <Suspense fallback={<Spinner />}>
+            <NotFoundPage />
+          </Suspense>
+        ),
+      },
     ],
-  },
-  {
-    path: '*',
-    element: (
-      <Suspense fallback={<Spinner />}>
-        <NotFoundPage />
-      </Suspense>
-    ),
   },
 ]);
 

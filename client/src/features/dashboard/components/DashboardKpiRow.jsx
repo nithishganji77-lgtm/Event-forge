@@ -1,6 +1,6 @@
 import { CalendarClock, CalendarDays, ListChecks, Users } from 'lucide-react';
 import { StatTile } from '../../../components/ui/StatTile.jsx';
-import { Alert } from '../../../components/ui/Alert.jsx';
+import { QueryError } from '../../../components/ui/QueryError.jsx';
 import { useDashboardSummary } from '../hooks/useDashboardSummary.js';
 import { formatDelta, formatPendingHint } from '../utils/dashboardFormat.js';
 
@@ -19,9 +19,11 @@ function KpiPlaceholder({ label }) {
 // how busy this month, and what's waiting on me. Every delta is one the server can back with a real
 // previous window (formatDelta returns null, and the tile shows a plain fact instead, when it can't).
 export function DashboardKpiRow({ organizationId }) {
-  const { data: summary, isLoading, isError } = useDashboardSummary(organizationId);
+  const { data: summary, isLoading, isError, error, refetch, isFetching } = useDashboardSummary(organizationId);
 
-  if (isError) return <Alert tone="error">Could not load your summary. Try refreshing the page.</Alert>;
+  if (isError) {
+    return <QueryError error={error} title="We couldn't load your summary" onRetry={refetch} isRetrying={isFetching} />;
+  }
 
   if (isLoading || !summary) {
     return (
