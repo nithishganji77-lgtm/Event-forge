@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { eventFormSchema, eventFormDefaults, STEP_FIELDS } from '../../schemas/event.schema.js';
+import { eventFormSchema, eventFormDefaults, EVENT_CATEGORIES, STEP_FIELDS } from '../../schemas/event.schema.js';
 import { useCreateEvent, useUpdateEvent } from '../../hooks/useEventMutations.js';
 import { uploadCoverImageRequest, publishEventRequest } from '../../../../services/event.service.js';
 import { WizardProgress } from './WizardProgress.jsx';
@@ -54,6 +54,20 @@ function mapEventToFormValues(event) {
   };
 }
 
+// A draft handed over by the header's ForgeAI button (navigation state). Only the fields a draft can
+// fill are taken, and only when they look right: the form validates everything again on submit.
+function withAiDraft(defaults, draft) {
+  if (!draft || typeof draft !== 'object') return defaults;
+  const next = { ...defaults, venue: { ...defaults.venue } };
+  if (typeof draft.title === 'string') next.title = draft.title;
+  if (typeof draft.description === 'string') next.description = draft.description;
+  if (EVENT_CATEGORIES.includes(draft.category)) next.category = draft.category;
+  if (Number.isFinite(draft.capacity)) next.capacity = draft.capacity;
+  if (typeof draft.registrationDeadline === 'string') next.registrationDeadline = draft.registrationDeadline;
+  if (typeof draft.venue?.name === 'string') next.venue.name = draft.venue.name;
+  return next;
+}
+
 // Strips empty-string optional fields the server's z.coerce.date() would otherwise choke on
 // (new Date('') is an Invalid Date, which fails validation instead of being treated as absent).
 function toApiPayload(values) {
@@ -68,8 +82,10 @@ function toApiPayload(values) {
 // dedicated publish endpoint reusing its own readiness check).
 export function EventWizard({ mode, event }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { organizationId, organizationSlug } = useActiveOrganization();
+  const aiDraft = mode === 'create' ? location.state?.aiDraft : undefined;
   const [currentStep, setCurrentStep] = useState(0);
   const [coverImageFile, setCoverImageFile] = useState(null);
   const [submitError, setSubmitError] = useState(null);
@@ -80,7 +96,7 @@ export function EventWizard({ mode, event }) {
 
   const form = useForm({
     resolver: zodResolver(eventFormSchema),
-    defaultValues: mode === 'edit' ? mapEventToFormValues(event) : eventFormDefaults,
+    defaultValues: mode === 'edit' ? mapEventToFormValues(event) : withAiDraft(eventFormDefaults, aiDraft),
   });
   const { trigger, handleSubmit } = form;
 
@@ -198,6 +214,7 @@ export function EventWizard({ mode, event }) {
           coverImageUrl={event?.coverImage}
           onCoverImageFileSelected={setCoverImageFile}
           organizationId={organizationId}
+          aiPrefilled={Boolean(aiDraft)}
         />
 
         <div className="flex flex-wrap items-center justify-between gap-3 mt-10 pt-6 border-t border-(--color-border) max-w-xl">
