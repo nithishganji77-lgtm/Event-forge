@@ -2,10 +2,18 @@ import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { cn } from '../../lib/cn.js';
 import { useEscapeKey } from '../../hooks/useEscapeKey.js';
 import { useFocusTrap } from '../../hooks/useFocusTrap.js';
 
-export function Modal({ open, onClose, title, children }) {
+// `md` is the confirm-dialog size every existing caller gets. `xl` is for a workspace inside a modal
+// (ForgeAI): wider, and it scrolls within the viewport instead of running off the bottom of it.
+const SIZES = {
+  md: 'max-w-lg',
+  xl: 'max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto',
+};
+
+export function Modal({ open, onClose, title, size = 'md', children }) {
   const dialogRef = useRef(null);
   const reduceMotion = useReducedMotion();
 
@@ -28,7 +36,7 @@ export function Modal({ open, onClose, title, children }) {
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="w-full max-w-lg border border-(--color-border) bg-(--color-surface) rounded-(--ef-radius) p-6"
+            className={cn('w-full border border-(--color-border) bg-(--color-surface) rounded-(--ef-radius) p-6', SIZES[size])}
             initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: reduceMotion ? 0 : 12 }}

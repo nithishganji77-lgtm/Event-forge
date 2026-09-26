@@ -7,6 +7,7 @@ import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Logo } from '../components/Logo.jsx';
 import { OrgSwitcher } from '../features/organizations/components/OrgSwitcher.jsx';
 import { NotificationBell } from '../features/notifications/components/NotificationBell.jsx';
+import { ForgeAiButton } from '../features/ai/components/ForgeAiButton.jsx';
 import { SidebarNav } from './SidebarNav.jsx';
 import { MobileNavDrawer } from './MobileNavDrawer.jsx';
 import { UserMenu } from './UserMenu.jsx';
@@ -102,6 +103,7 @@ export function DashboardLayout() {
           </div>
           <div className="hidden lg:block" />
           <div className="flex items-center gap-1.5">
+            <ForgeAiButton />
             <NotificationBell />
             <UserMenu />
           </div>
