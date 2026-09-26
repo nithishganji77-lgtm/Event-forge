@@ -170,4 +170,22 @@ describe('ForgeAI service', () => {
     expect((await service.run('venues', { theme: 'Offsite', capacity: 40 })).result.venues).toHaveLength(3);
     expect((await service.run('enhance', { text: 'Old text', mode: 'invitation_email' })).result).toEqual({ text: 'Better text', subject: 'Join us' });
   });
+  it('"fresh" skips the cache read for a new answer, and stores it for the next request', async () => {
+    const { service, generateJson } = setup();
+    await service.run('draft', { prompt: 'Plan a team day' });
+    generateJson.mockResolvedValueOnce(reply({ ...goodDraft, draft: { ...goodDraft.draft, title: 'A different take' } }));
+
+    const again = await service.run('draft', { prompt: 'Plan a team day' }, { fresh: true });
+    expect(again).toMatchObject({ cached: false, result: { title: 'A different take' } });
+    expect(generateJson).toHaveBeenCalledTimes(2);
+
+    const next = await service.run('draft', { prompt: 'Plan a team day' });
+    expect(next).toMatchObject({ cached: true, result: { title: 'A different take' } });
+  });
+
+  it('"fresh" still spends the shared quota, because it is a real call', async () => {
+    const { service } = setup({ quota: createQuotaBucket({ perMinute: 1 }) });
+    await service.run('draft', { prompt: 'Plan a team day' });
+    expect(await rejection(service.run('draft', { prompt: 'Plan a team day' }, { fresh: true }))).toMatchObject({ code: 'AI_BUSY' });
+  });
 });

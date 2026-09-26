@@ -4,6 +4,9 @@ import { INPUT_MESSAGES, MAX_ENHANCE_CHARS, MAX_PROMPT_CHARS, cleanInput, findIn
 
 export { orgParamsSchema as aiOrgParamsSchema } from './organization.validator.js';
 
+// `fresh: true` is "give me another one": it skips the cache read (see the AI service).
+const fresh = z.boolean().optional();
+
 // Free text a person typed for the model. The size is checked before cleaning (so a huge body is
 // refused early), the text is cleaned, then held to its limit, then screened for injection phrasing
 // and personal details, with the message landing on the field it belongs to.
@@ -44,22 +47,26 @@ function optionalText(max) {
 export const draftBodySchema = z.object({
   prompt: requestText({ max: MAX_PROMPT_CHARS }),
   category: z.enum(EVENT_CATEGORIES).optional(),
+  fresh,
 });
 
 export const conceptsBodySchema = z.object({
   vibe: requestText({ max: 200 }),
   department: optionalText(60),
   budget: optionalText(60),
+  fresh,
 });
 
 export const venuesBodySchema = z.object({
   theme: requestText({ max: 200 }),
   capacity: z.coerce.number().int().min(1).max(5000),
   city: optionalText(60),
+  fresh,
 });
 
 export const enhanceBodySchema = z.object({
   text: requestText({ max: MAX_ENHANCE_CHARS, multiline: true }),
   mode: z.enum(['professional', 'energetic', 'invitation_email']),
   eventTitle: optionalText(200),
+  fresh,
 });

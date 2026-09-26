@@ -57,7 +57,9 @@ export function createAiService({
       return { enabled: isEnabled() };
     },
 
-    async run(kind, params) {
+    // `fresh` skips reading the cache ("give me another"); the new answer still replaces the old one and
+    // still spends quota, since it really is a new call.
+    async run(kind, params, { fresh = false } = {}) {
       if (!isEnabled()) throw aiErrors.disabled();
       const spec = KIND_SPECS[kind];
 
@@ -69,7 +71,7 @@ export function createAiService({
       }
 
       const key = cacheKey(kind, params);
-      const hit = cache.get(key);
+      const hit = fresh ? undefined : cache.get(key);
       if (hit) {
         logger.info({ kind, cached: true }, 'ForgeAI request');
         return { ...hit, cached: true };

@@ -4,7 +4,9 @@ import { sendSuccess } from '../utils/ApiResponse.js';
 
 const run = (kind) =>
   asyncHandler(async (req, res) => {
-    const { result, cached } = await aiService.run(kind, req.body);
+    // `fresh` is a request option, not part of what is asked, so it stays out of the cache key.
+    const { fresh, ...params } = req.body;
+    const { result, cached } = await aiService.run(kind, params, { fresh });
     return sendSuccess(res, { data: { kind, result, cached } });
   });
 

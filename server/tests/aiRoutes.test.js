@@ -4,6 +4,9 @@ import request from 'supertest';
 // The key must be set before anything imports config/env.js, so everything that reaches it is
 // imported dynamically below, after this line and after the adapter is replaced by a fake.
 process.env.GEMINI_API_KEY = 'test-key-not-a-real-key';
+// The shared per-minute quota (default 12) is covered by the service tests; this file makes more real
+// calls than that in a minute, so raise it here.
+process.env.AI_GLOBAL_RPM = '1000';
 
 const generateJson = jest.fn();
 class AiProviderError extends Error {
@@ -123,6 +126,19 @@ describe('the four tasks', () => {
     const second = await agent.post(`${base}/draft`).send({ prompt: 'plan a CACHE test offsite ' });
     expect(second.body.data.cached).toBe(true);
     expect(generateJson).toHaveBeenCalledTimes(1);
+  });
+
+  it('"fresh" asks for another answer instead of the cached one', async () => {
+    const { base, owner } = await world();
+    generateJson.mockResolvedValue(draftReply);
+    const agent = await loginAgent(owner.email);
+    await agent.post(`${base}/draft`).send({ prompt: 'Plan a rerun test offsite' });
+    const again = await agent.post(`${base}/draft`).send({ prompt: 'Plan a rerun test offsite', fresh: true });
+    expect(again.status).toBe(200);
+    expect(again.body.data.cached).toBe(false);
+    expect(generateJson).toHaveBeenCalledTimes(2);
+    // `fresh` is an option, not part of the question: it never reaches the model.
+    expect(JSON.stringify(generateJson.mock.calls[1][0])).not.toContain('"fresh"');
   });
 
   it('concepts, venues and enhance', async () => {
