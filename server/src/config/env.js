@@ -32,6 +32,16 @@ const envSchema = z.object({
 
   GOOGLE_CLIENT_ID: z.string().optional(),
 
+  // ForgeAI (Gemini). Optional: without a key the AI endpoints answer "not set up" and the UI shows
+  // a disabled state. The model is an env var because Google retires and renames them: run
+  // `npm run ai:check` to see which ones the key can actually call.
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default('gemini-3.5-flash-lite'),
+  // The free tier's quota belongs to the whole project, not to each user, so all users share this
+  // many AI calls per minute in total (on top of the per-user limit).
+  AI_GLOBAL_RPM: z.coerce.number().int().min(1).default(12),
+  AI_CACHE_TTL_SECONDS: z.coerce.number().int().min(0).default(3600),
+
   DEADLINE_REMINDER_CRON: z.string().default('*/15 * * * *'),
   DEADLINE_REMINDER_WINDOW_HOURS: z.coerce.number().default(24),
 });
@@ -69,6 +79,8 @@ export const smtpConfigured = Boolean(config.SMTP_HOST && config.SMTP_USER && co
 export const resendConfigured = Boolean(config.RESEND_API_KEY);
 
 export const googleAuthConfigured = Boolean(config.GOOGLE_CLIENT_ID);
+
+export const geminiConfigured = Boolean(config.GEMINI_API_KEY);
 
 // CLIENT_URL stays a single string (backward-compatible with every existing .env — a one-value
 // CLIENT_URL behaves identically to before); comma-separate it to allow more than one origin, e.g.

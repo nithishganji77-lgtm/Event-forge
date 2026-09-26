@@ -24,3 +24,4 @@ process.env.CLOUDINARY_CLOUD_NAME = '';
 process.env.CLOUDINARY_API_KEY = '';
 process.env.CLOUDINARY_API_SECRET = '';
 process.env.GOOGLE_CLIENT_ID = '';
+process.env.GEMINI_API_KEY = '';

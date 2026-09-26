@@ -10,12 +10,14 @@
     "start": "node src/server.js",
     "seed": "node src/seed/seed.js",
     "seed:demo": "node src/seed/demoData.js",
+    "ai:check": "node src/scripts/aiCheck.js",
     "lint": "eslint src",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
     "backfill:event-times": "node src/seed/backfillEventTimes.js",
     "test:tz": "TZ=UTC npm test && TZ=America/Los_Angeles npm test"
   },
   "dependencies": {
+    "@google/genai": "^2.24.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
     "compression": "^1.7.5",

@@ -15,6 +15,7 @@ import inviteRoutes from './invite.routes.js';
 import eventRoutes from './event.routes.js';
 import analyticsRoutes from './analytics.routes.js';
 import auditLogRoutes from './auditLog.routes.js';
+import aiRoutes from './ai.routes.js';
 
 const router = Router();
 
@@ -53,5 +54,6 @@ router.use('/:orgId/invites', inviteRoutes);
 router.use('/:orgId/events', eventRoutes);
 router.use('/:orgId/analytics', analyticsRoutes);
 router.use('/:orgId/audit-logs', auditLogRoutes);
+router.use('/:orgId/ai', aiRoutes);
 
 export default router;
