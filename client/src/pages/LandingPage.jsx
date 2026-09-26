@@ -3,7 +3,7 @@ import { Button } from '../components/ui/Button.jsx';
 import { Logo } from '../components/Logo.jsx';
 import { ROUTES } from '../utils/constants.js';
 import { Hero } from './landing/Hero.jsx';
-import { OurWorkSection } from './landing/OurWorkSection.jsx';
+import { EventCarousel } from './landing/EventCarousel.jsx';
 import { StatementSection } from './landing/StatementSection.jsx';
 import { ProblemSection } from './landing/ProblemSection.jsx';
 import { ChangesSection } from './landing/ChangesSection.jsx';
@@ -12,7 +12,7 @@ import { CtaBand } from './landing/CtaBand.jsx';
 import { LandingFooter } from './landing/LandingFooter.jsx';
 
 // Editorial, scroll-cinematic landing page: six numbered sections (01/HERO through 06/WHY US),
-// each a deliberately different visual beat — huge type, then quiet text + a horizontal graphic,
+// each a deliberately different visual beat — huge type, then a premium event carousel,
 // then whitespace + one large statement, then dense numbered blocks, then alternating editorial
 // rows (not a repeated card grid), then a full-bleed dark section — closing on an accent CTA band
 // and an oversized footer wordmark.
@@ -33,7 +33,7 @@ export function LandingPage() {
 
       <main>
         <Hero />
-        <OurWorkSection />
+        <EventCarousel />
         <StatementSection />
         <ProblemSection />
         <ChangesSection />
