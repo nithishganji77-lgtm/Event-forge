@@ -66,6 +66,13 @@ describe('ForgeAI service', () => {
     expect(prompt).toMatch(/<user_request>\nPlan a team day\n<\/user_request>/);
   });
 
+  it('tells the model to keep the meaning of text it polishes, not to harden a suggestion into a rule', () => {
+    const prompt = buildPrompt('enhance', { text: 'everyone should come', mode: 'professional' });
+    expect(prompt).toMatch(/strength of every statement/);
+    expect(prompt).toMatch(/never make attendance "mandatory"/);
+    expect(prompt).toContain('<user_request>');
+  });
+
   it('answers a repeat from the cache without spending quota or calling the model', async () => {
     const { service, generateJson } = setup();
     await service.run('draft', { prompt: 'Plan a team day' });

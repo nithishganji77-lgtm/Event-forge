@@ -56,6 +56,7 @@ export function buildPrompt(kind, params) {
       return [
         `Rewrite the event text below in ${MODE_INSTRUCTIONS[params.mode]}.`,
         'Keep every fact (dates, times, numbers, names, places) exactly as given and do not invent new ones.',
+        'Keep the meaning and the strength of every statement: a suggestion stays a suggestion (never make attendance "mandatory" or "required" unless the text says so), and add no promises, prices, deadlines or instructions the text does not contain.',
         params.eventTitle ? tagged('event_title', params.eventTitle) : '',
         tagged('user_request', params.text),
       ].filter(Boolean).join('\n');
