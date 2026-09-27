@@ -27,6 +27,8 @@ working, connected slice (no disconnected mock screens, no hard-coded fake data)
   console-log fallback — same `sendEmail()` call site regardless.
 - **Images:** Cloudinary if configured, else local-disk storage under `server/uploads/` — same
   `storage.upload()`/`storage.remove()` call site regardless.
+- **AI (optional):** Google Gemini via `@google/genai` — ForgeAI, an event copilot. Only
+  `server/src/services/ai/gemini.client.js` imports the SDK. No key = feature off, app unaffected.
 - **Auth:** email/password plus Google Sign-In (`@react-oauth/google` + `google-auth-library`,
   ID-token verification, no client secret needed). The Google button is hidden entirely when
   `GOOGLE_CLIENT_ID`/`VITE_GOOGLE_CLIENT_ID` aren't set.
@@ -48,6 +50,7 @@ cd server && npm run seed:demo                  # "Northwind Events": 4 role use
                                                 # state, registrations, invites, audit history.
                                                 # `-- --reset` recreates it. Dates are relative to the
                                                 # moment it runs, so re-seed before a demo.
+cd server && npm run ai:check                   # which Gemini models the key can call + one tiny request
 cd server && npm test                           # jest; `npm run test:tz` also runs it under UTC and
                                                 # America/Los_Angeles (this machine is IST)
 cd client && npm test                           # vitest
@@ -187,6 +190,51 @@ built, because nothing behind them exists: Export attendees, Add attendee, a map
 or key; "Get directions" opens a Google Maps search), per-event accent colour, event visibility,
 organizer job titles.
 
+### ForgeAI (Gemini event copilot)
+
+Four tasks on one pipeline — **draft** an event from a sentence, **concepts** (3 for a vibe), **venues**
+(venue *types* with a Maps search, never invented businesses) and **enhance** (professional / energetic /
+invitation email). Routes: `GET /organizations/:orgId/ai/status`, `POST .../ai/{draft,concepts,venues,
+enhance}`; middleware `authenticate -> validate -> orgContext -> requirePermission(EVENT_CREATE) ->
+aiLimiter (10/min per user; the POSTs only, not `status`) -> controller`. The service (`services/ai/ai.service.js`, built by
+`createAiService({generateJson, cache, quota, ...})` so tests inject fakes) then runs: input guardrails
+-> cache -> shared quota bucket -> Gemini -> output validation -> cache store. Each stage is a small
+module: `guardrails.js`, `cache.js` (LRU + TTL, and the token bucket), `prompts.js`, `schemas.js`.
+
+*Containment, not filtering, is the defence.* The prompt filter (500 chars, 2000 for enhance; hidden
+and bidi characters stripped; a narrow injection-phrase list tested against benign lookalikes; emails and
+phone numbers refused) is a speed bump. What actually bounds the damage: the model has no tools and is
+sent only what the person typed (never org / user / event data, which also makes the cache safe to share
+across orgs); its answer is untrusted, so it is re-validated with zod (tags, URLs and hidden characters
+stripped, numbers clamped, category forced into the six known ones, agenda times checked) before it is
+cached or returned; and the client renders it as text. The system prompt makes off-topic requests come
+back as `{status:'off_topic'}` (422 `AI_OFF_TOPIC`).
+
+*Quota is per Google project, not per user*, so a per-user limiter alone cannot protect it:
+`AI_GLOBAL_RPM` (default 12) is a shared bucket, cache hits don't spend it, and a Gemini 429 becomes
+`AI_BUSY`. Other errors: `AI_DISABLED` 503, `AI_BAD_OUTPUT` 502, `AI_UNAVAILABLE` 503, `AI_TIMEOUT` 504 —
+each with a sentence a person can act on; provider detail is logged (kind, model, latency, cache hit,
+token counts) and **never the prompt or the answer**. No SDK retry (`attempts: 1`): a retry would burn
+quota, and "Another take" / re-clicking is the person's own retry. `fresh: true` on a body skips the cache
+*read* (the new answer replaces the cached one; it still spends quota).
+
+*Privacy.* On Google's free tier prompts and responses may be used to improve its products and reviewed
+by humans, and Google asks that nothing sensitive or personal be submitted. Hence: only typed text is
+sent, emails/phones are refused, the panel carries a notice, and `.env.example` / README say to use a
+**paid key before real customers**. The key lives in `server/.env` only; never `client/.env`.
+
+*Client* (`features/ai/`). One `ForgeAiPanel` with four tabs (all mounted, so a result survives a look at
+another tab), shown in `ForgeAiModal` (`Modal` has a `size` prop: `md` default, `xl`), opened from
+`ForgeAiButton` in the header for `EVENT_CREATE` holders; the status is asked for only when it opens.
+The panel and the wizard differ only in the callbacks they pass (`onUseDraft`, `onUseVenue`,
+`onUseText`). The Event model has no agenda / tagline field, so `applyDraft.js` writes tagline +
+description + the agenda as **text** into the description (cut at a whole line, never past 5000 chars);
+the venue name is filled only if a venue idea was picked, the registration deadline only if a start date
+exists and that day hasn't passed. Replacing text the person already typed is confirmed *inside* the
+modal (no second dialog stacked). From the header there is no form, so "Use this draft" navigates to
+`/events/new` with `state.aiDraft`, which `EventWizard` reads (known fields, right types only) as its
+starting values. Editing an existing event offers only the polisher.
+
 ### Invites
 
 A full email-invite system (`Invite` model) that can invite people who don't have an EventForge
@@ -298,6 +346,20 @@ via Rollup's default splitting — no manual `vite.config.js` chunk tuning neede
   import/export, Profile / Preferences / Help pages, renaming Members -> "Attendees".
 
 ## Known issues found and fixed (so they don't recur)
+
+- **Gemini free-tier facts change; don't hard-code them.** `gemini-2.0-flash` / `1.5-flash` are shut
+  down, free-tier limits are no longer published (see AI Studio), and the SDK's primary API moved. The
+  model is `GEMINI_MODEL`, `npm run ai:check` is the source of truth, and everything SDK-specific is in
+  `gemini.client.js`.
+- **A polisher will strengthen wording unless told not to.** "everyone should come" came back as
+  "Attendance is mandatory". The enhance prompt now pins meaning and strength (found in a live run, not
+  by a test; the test pins the instruction, not the model).
+- **A `fetch failed` from Gemini is a network blip on the machine, not a rejected request.** It becomes
+  `AI_UNAVAILABLE` and the panel shows the friendly banner; check the server log (`providerKind`,
+  `message`) before assuming the request is wrong.
+- **The header's ForgeAI modal is still in the DOM while it fades out.** It lives in `DashboardLayout`,
+  which persists across navigation, so a test or script that navigates right after "Use this draft" must
+  wait for the dialog to detach before querying the wizard (duplicate labels such as "Category" otherwise).
 
 - **An unlayered `* { border-color }` beat every Tailwind border utility.** It sat outside
   `@layer`, so it won over `border-*` colour utilities (active-nav bar, hover borders, invalid-input
@@ -476,6 +538,16 @@ via Rollup's default splitting — no manual `vite.config.js` chunk tuning neede
   also passes under `TZ=UTC` and `TZ=America/Los_Angeles`. `security-review` ran twice (backend
   lifecycle + summary endpoint, then the whole redesign diff including the frontend) and returned
   zero findings; the stored-link vector above was fixed before the second run, not found by it.
+
+- **ForgeAI (Gemini event copilot)** — complete and verified, in four commits (server pipeline,
+  `fresh`, client panel + header button, wizard integration) plus a prompt fix. Server 259 tests, client
+  362. Verified live with a real free-tier key in a browser at 1440 (light and dark) and 390: draft
+  (4 s; the identical repeat 54 ms from the cache), concepts, venues, polish and invitation email, the
+  header -> wizard prefill (name, category, description with agenda, venue name, capacity; the deadline
+  correctly blank when no start date exists), an injection attempt and a phone number refused before
+  reaching Google, an off-topic request refused (422), the disabled state, and exactly 10 requests
+  accepted then a friendly 429 (using cached repeats, so no quota). One provider error seen
+  (`fetch failed`) degraded to the banner. See "Known issues" for what the live run taught.
 
 **Not done / not requested:** pushing the git history to the configured `origin` remote
 (`nithishganji77-lgtm/Event-forge`) — nothing has been pushed. The per-IP `apiLimiter` (300 / 15 min)

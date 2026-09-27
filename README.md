@@ -7,8 +7,9 @@ A B2B corporate event management platform — MERN stack, built end-to-end in ph
 **Status:** feature-complete across all 7 build phases — auth (email/password + Google
 Sign-In), organizations/members/RBAC/invites, event lifecycle + registration/waitlist,
 role-aware dashboards/calendar/analytics, in-app notifications + a deadline-reminder cron
-job, a full audit-log browser, a responsive/accessible UI, and an automated test suite
-(backend + frontend) backing it all.
+job, a full audit-log browser, a responsive/accessible UI, **ForgeAI** (an optional Gemini-powered
+event copilot: draft an event from a sentence, suggest concepts and venues, polish text), and an
+automated test suite (backend + frontend) backing it all.
 
 ## Stack
 
@@ -18,6 +19,8 @@ job, a full audit-log browser, a responsive/accessible UI, and an automated test
   Framer Motion, Lucide icons.
 - **Database:** MongoDB (local for dev; swap `MONGODB_URI` to an Atlas URI for production — no
   code changes needed).
+- **AI (optional):** Google Gemini through `@google/genai`, behind one adapter file. Without a key the
+  app works as usual and ForgeAI shows a "not set up" state.
 
 ## Local setup
 
@@ -83,6 +86,29 @@ config. The vars a first-time setup actually has to touch:
 | `CLIENT_URL` | `server/.env` | Must match whatever port Vite actually lands on (see the macOS port note above); drives both CORS and the links in outgoing emails. Comma-separate multiple values to allow more than one origin (e.g. a deployed frontend plus a local dev client). |
 | `COOKIE_DOMAIN` | `server/.env` | Leave blank for local dev. Only needed once frontend/backend share a parent domain in production (e.g. `.eventforge.com`). |
 
+### ForgeAI (optional, Gemini)
+
+ForgeAI drafts an event from a sentence, suggests three concepts for a vibe, suggests venue types, and
+polishes text (professional / energetic / invitation email). It is off until the server has a key:
+
+1. Create a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+2. Put it in **`server/.env` only** as `GEMINI_API_KEY=...` — never in `client/.env` (everything in a
+   client variable is shipped to the browser) and never in a commit — then restart the server.
+3. `cd server && npm run ai:check` lists the models your key can call and makes one tiny request.
+   Model names change; `GEMINI_MODEL` (default `gemini-3.5-flash-lite`) is an env var for that reason.
+
+Who can use it: people who can create events (organizers and admins). What the model sees: only the
+text typed into the panel, never organization, user or event data. What is guarded: the input (length,
+injection phrasing, emails and phone numbers are refused), the output (schema-checked, then cleaned of
+HTML and links and clamped), and the volume (10 requests a minute per person, and a shared
+`AI_GLOBAL_RPM` bucket, because Google's quota is per *project*, not per person). Repeat requests are
+served from an in-memory cache and cost nothing.
+
+**Use a paid key before real customers.** On Google's free tier, prompts and responses may be used to
+improve Google's products and reviewed by people, and Google asks that no sensitive, confidential or
+personal information be submitted. The panel says so, but a paid key is the real fix for production.
+The cache and limiters live in the server process, so they are per instance.
+
 Image uploads and email both work without any third-party account in dev (local-disk storage,
 console-logged emails) and pick up real credentials automatically the moment those env vars are
 set — no code changes required either way (see "Adding Cloudinary" below for that one).
@@ -121,6 +147,8 @@ set — no code changes required either way (see "Adding Cloudinary" below for t
 - If the frontend and backend end up on different registrable domains (e.g. a Vercel frontend and
   a Render backend), set `COOKIE_DOMAIN` accordingly and make sure `CLIENT_URL` lists every
   origin that should be allowed through CORS (comma-separated — see the table above).
+- ForgeAI: set `GEMINI_API_KEY` on a **paid** key (see "ForgeAI" above), or leave it blank to ship
+  without AI.
 - Point `MONGODB_URI` at your production Atlas cluster (see "Swapping to MongoDB Atlas") and set
   real `RESEND_API_KEY`/`CLOUDINARY_*`/`GOOGLE_CLIENT_ID` values as needed.
 
