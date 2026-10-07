@@ -122,6 +122,20 @@ describe('errors that used to be raw or a 500', () => {
     const wrong = await agent.post(`/api/v1/events/${event._id}/cover-image`).attach('coverImage', Buffer.from('hi'), { filename: 'a.txt', contentType: 'text/plain' });
     expect(err(wrong).message).toBe('The cover image must be a JPEG, PNG or WebP file.');
   });
+
+  it('rejects a non-image file whose Content-Type header is forged to look like an image (magic-byte check, not just the declared type)', async () => {
+    const { organization, owner } = await makeOrg();
+    const event = await makePublishedEvent({ organization, createdBy: owner });
+    const agent = await loginAgent(owner.email);
+    const forged = await agent
+      .post(`/api/v1/events/${event._id}/cover-image`)
+      .attach('coverImage', Buffer.from('definitely not a real image, just forged bytes'), {
+        filename: 'cover.png',
+        contentType: 'image/png',
+      });
+    expect(forged.status).toBe(400);
+    expect(err(forged).message).toBe('The cover image must be a genuine JPEG, PNG or WebP file.');
+  });
 });
 
 describe('everyday messages read as instructions', () => {

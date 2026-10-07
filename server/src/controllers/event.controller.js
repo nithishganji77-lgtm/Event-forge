@@ -10,6 +10,7 @@ import {
   setCoverImage,
 } from '../services/event.service.js';
 import { storage } from '../services/storage/index.js';
+import { detectImageMimeType } from '../utils/detectImageMimeType.js';
 import { writeAuditLog, eventAuditMetadata } from '../services/audit.service.js';
 import {
   notifyEventPublished,
@@ -143,9 +144,17 @@ export const duplicateEventHandler = asyncHandler(async (req, res) => {
 export const uploadCoverImageHandler = asyncHandler(async (req, res) => {
   if (!req.file) throw ApiError.badRequest('Choose an image to upload.');
 
+  // The declared Content-Type on the multipart part (checked by multer's fileFilter) is
+  // client-controlled and can be forged. This sniffs the actual bytes and is the real content
+  // gate; the stored file's type/extension is derived from this, never from the client's claim.
+  const detectedMimetype = detectImageMimeType(req.file.buffer);
+  if (!detectedMimetype) {
+    throw ApiError.badRequest('The cover image must be a genuine JPEG, PNG or WebP file.');
+  }
+
   const { url } = await storage.upload(req.file.buffer, {
     filename: req.file.originalname,
-    mimetype: req.file.mimetype,
+    mimetype: detectedMimetype,
   });
   const event = await setCoverImage(req.event, url);
 
