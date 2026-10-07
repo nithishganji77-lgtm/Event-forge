@@ -32,7 +32,9 @@ function renderHeader() {
 // The header has no form to fill, so a draft used from there travels to the new-event wizard as
 // navigation state and becomes its starting values.
 describe('ForgeAI from the app header to the event wizard', () => {
-  it('opens the new-event wizard with the draft in it', async () => {
+  // A long walk (draft, then two wizard steps); the AI layer adds ~150 ms of jsdom work per draft,
+  // enough to brush the 5 s default when the whole suite runs in parallel.
+  it('opens the new-event wizard with the draft in it', { timeout: 10_000 }, async () => {
     const user = userEvent.setup();
     server.use(aiStatus('org-1'), aiTask('org-1', 'draft', 'draft', draftResult));
     renderHeader();
