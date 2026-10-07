@@ -9,13 +9,15 @@ import {
 
 // Whether the server has a Gemini key. Asked only when something needs the answer (the panel is
 // open), and remembered for a while: it changes only when an admin edits the server's .env.
+// Shared so the header button can wait on the very request the panel makes, not a second one.
+export const aiStatusQuery = (orgId) => ({
+  queryKey: ['organizations', orgId, 'ai', 'status'],
+  queryFn: () => fetchAiStatus(orgId),
+  staleTime: 5 * 60 * 1000,
+});
+
 export function useAiStatus(orgId, { enabled = true } = {}) {
-  return useQuery({
-    queryKey: ['organizations', orgId, 'ai', 'status'],
-    queryFn: () => fetchAiStatus(orgId),
-    enabled: Boolean(orgId) && enabled,
-    staleTime: 5 * 60 * 1000,
-  });
+  return useQuery({ ...aiStatusQuery(orgId), enabled: Boolean(orgId) && enabled });
 }
 
 // One mutation per task. Their errors are shown inside the panel beside the field they belong to,

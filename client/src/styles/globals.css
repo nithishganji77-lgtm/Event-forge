@@ -32,19 +32,13 @@
   --text-meta: 12px;
   --text-meta--letter-spacing: 0.08em;
 
-  /* ForgeAI's draft hand-off (ForgeAiTransition / PlanTab). Loops are CSS rather than JS so the
-     reduced-motion rule at the bottom of this file freezes them. */
+  /* ForgeAI's opening hand-off (ForgeAiTransition). A CSS loop rather than JS so the reduced-motion
+     rule at the bottom of this file freezes it. */
   --animate-forge-breathe: forge-breathe 2.4s ease-in-out infinite;
-  --animate-forge-rise: forge-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 
   @keyframes forge-breathe {
     0%, 100% { opacity: 0.55; transform: scale(0.94); }
     50% { opacity: 1; transform: scale(1.06); }
-  }
-
-  @keyframes forge-rise {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: none; }
   }
 }
 
@@ -125,17 +119,6 @@ body {
   text-transform: uppercase;
   font-weight: 500;
 }
-
-/* A fresh ForgeAI draft settles in section by section. The class is only present while a result is
-   being revealed, so adding it is what starts the animation (it never runs under the AI layer). */
-@layer components {
-  .forge-reveal > article > * { animation: var(--animate-forge-rise); }
-  .forge-reveal > article > :nth-child(2) { animation-delay: 60ms; }
-  .forge-reveal > article > :nth-child(3) { animation-delay: 120ms; }
-  .forge-reveal > article > :nth-child(4) { animation-delay: 180ms; }
-  .forge-reveal > article > :nth-child(5) { animation-delay: 240ms; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

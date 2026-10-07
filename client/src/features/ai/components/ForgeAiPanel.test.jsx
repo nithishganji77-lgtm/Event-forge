@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { server } from '../../../../tests/mocks/server.js';
@@ -17,24 +17,6 @@ import {
   venuesResult,
 } from '../../../../tests/fixtures/ai.js';
 import { ForgeAiPanel } from './ForgeAiPanel.jsx';
-import { ForgeAiModal } from './ForgeAiModal.jsx';
-
-const aiLayer = () => document.querySelector('[data-forge-transition]');
-
-// A draft endpoint that answers only when the test says so, to prove the AI layer follows the real
-// request rather than a timer.
-function heldDraft(orgId, bodies) {
-  let release;
-  const gate = new Promise((resolve) => {
-    release = resolve;
-  });
-  const handler = http.post(`http://localhost:4000/api/v1/organizations/${orgId}/ai/draft`, async ({ request }) => {
-    bodies.push(await request.json());
-    await gate;
-    return HttpResponse.json({ success: true, data: { kind: 'draft', result: draftResult, cached: false } });
-  });
-  return { handler, release: () => release() };
-}
 
 function renderPanel(props = {}) {
   return render(
@@ -294,109 +276,6 @@ describe('ForgeAiPanel', () => {
       await user.click(screen.getByRole('button', { name: /draft with forgeai/i }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent("ForgeAI isn't set up on this server.");
-    });
-  });
-
-  // These wait in real time (the 1 s minimum, a held request, the fade-out), so they get more room.
-  describe('Draft hand-off (the AI layer)', { timeout: 10_000 }, () => {
-    it('stays up for as long as the real request takes, not for a fixed time, then shows the draft', async () => {
-      const user = userEvent.setup();
-      const bodies = [];
-      const held = heldDraft('org-1', bodies);
-      server.use(aiStatus('org-1'), held.handler);
-      renderPanel();
-
-      await user.type(await screen.findByLabelText('Describe the event'), 'A hackathon');
-      await user.click(screen.getByRole('button', { name: /draft with forgeai/i }));
-
-      expect(aiLayer()).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'ForgeAI is thinking…' })).toHaveAttribute('aria-busy', 'true');
-
-      // Past the one-second minimum and the time its fade-out would take: the request is still out,
-      // so the layer must still be up (a timer-driven layer would be gone by now).
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      expect(aiLayer()).toBeInTheDocument();
-      expect(screen.queryByRole('heading', { name: draftResult.title })).not.toBeInTheDocument();
-
-      held.release();
-
-      expect(await screen.findByRole('heading', { name: draftResult.title })).toBeInTheDocument();
-      await waitFor(() => expect(aiLayer()).not.toBeInTheDocument(), { timeout: 3000 });
-      expect(bodies).toEqual([{ prompt: 'A hackathon' }]);
-    });
-
-    it('sends exactly one request however many times the button is hit', async () => {
-      const user = userEvent.setup();
-      const bodies = [];
-      const held = heldDraft('org-1', bodies);
-      server.use(aiStatus('org-1'), held.handler);
-      renderPanel();
-
-      await user.type(await screen.findByLabelText('Describe the event'), 'A hackathon');
-      const button = screen.getByRole('button', { name: /draft with forgeai/i });
-      // Two clicks in the same tick land before the request's pending state reaches the button.
-      fireEvent.click(button);
-      fireEvent.click(button);
-      await user.dblClick(button);
-
-      held.release();
-      await screen.findByRole('heading', { name: draftResult.title });
-      expect(bodies).toHaveLength(1);
-    });
-
-    it('moves focus to the new draft once the layer hands back', async () => {
-      const user = userEvent.setup();
-      server.use(aiStatus('org-1'), aiTask('org-1', 'draft', 'draft', draftResult));
-      renderPanel();
-
-      await user.type(await screen.findByLabelText('Describe the event'), 'A hackathon');
-      await user.click(screen.getByRole('button', { name: /draft with forgeai/i }));
-
-      const article = await screen.findByRole('article', { name: 'Generated event draft' });
-      await waitFor(() => expect(article.parentElement).toHaveFocus(), { timeout: 3000 });
-    });
-
-    it('returns to the form after an error, with the message and a usable, focused button', async () => {
-      const user = userEvent.setup();
-      const message = 'ForgeAI is unavailable right now. Please try again in a moment.';
-      server.use(aiStatus('org-1'), aiFailure('org-1', 'draft', 503, { code: 'AI_UNAVAILABLE', message }));
-      renderPanel();
-
-      // Sent from the keyboard: focus starts in the prompt and has to come back somewhere useful.
-      await user.type(await screen.findByLabelText('Describe the event'), 'A hackathon{Control>}{Enter}{/Control}');
-
-      expect(await screen.findByRole('alert')).toHaveTextContent(message);
-      await waitFor(() => expect(aiLayer()).not.toBeInTheDocument(), { timeout: 3000 });
-      const button = screen.getByRole('button', { name: /draft with forgeai/i });
-      expect(button).toBeEnabled();
-      await waitFor(() => expect(button).toHaveFocus());
-    });
-
-    it('ignores Escape while drafting, and closes on Escape again once it is done', async () => {
-      const user = userEvent.setup();
-      const onClose = vi.fn();
-      const bodies = [];
-      const held = heldDraft('org-1', bodies);
-      server.use(aiStatus('org-1'), held.handler);
-      render(
-        <QueryClientProvider client={createTestQueryClient()}>
-          <MemoryRouter>
-            <ForgeAiModal open onClose={onClose} orgId="org-1" onUseDraft={vi.fn()} />
-          </MemoryRouter>
-        </QueryClientProvider>
-      );
-
-      await user.type(await screen.findByLabelText('Describe the event'), 'A hackathon');
-      await user.click(screen.getByRole('button', { name: /draft with forgeai/i }));
-      await user.keyboard('{Escape}');
-      expect(onClose).not.toHaveBeenCalled();
-
-      held.release();
-      await screen.findByRole('heading', { name: draftResult.title });
-      await waitFor(() => expect(aiLayer()).not.toBeInTheDocument(), { timeout: 3000 });
-
-      await user.keyboard('{Escape}');
-      expect(onClose).toHaveBeenCalledTimes(1);
     });
   });
 

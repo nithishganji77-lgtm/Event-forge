@@ -12,28 +12,21 @@ const HAIRLINE = '#34322C';
 const EASE = [0.22, 1, 0.36, 1];
 
 // Purely presentational copy. It does not track what the server is doing.
-const LINES = [
-  'Understanding your event…',
-  'Shaping the format…',
-  'Building the agenda…',
-  'Sizing the room…',
-  'Almost there…',
-];
-const LINE_MS = 1800;
+const LINES = ['ForgeAI is waking up…', 'Getting the planner ready…', 'Almost there…'];
+const LINE_MS = 1600;
 
 const GRAIN =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
-// The layer ForgeAI hands off through while a draft is being written. Decorative (aria-hidden): the
-// Plan tab's own status line announces the work. While active it swallows Escape and Tab so the
-// dialog underneath can't be closed or tabbed into mid-request; there is no way to cancel the
-// request, so it doesn't pretend to offer one.
+// The layer ForgeAI opens through: it covers the screen while the panel underneath asks the server
+// whether ForgeAI is available, then dissolves into it. Decorative (aria-hidden): the dialog it
+// reveals is what assistive tech is pointed at. While active it swallows Escape and Tab, so the
+// half-ready dialog underneath can't be closed or tabbed around mid-hand-off.
 export function ForgeAiTransition({ active, origin }) {
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (!active) return undefined;
-    document.activeElement?.blur?.();
 
     function block(event) {
       if (event.key === 'Escape' || event.key === 'Tab') {
@@ -56,7 +49,7 @@ export function ForgeAiTransition({ active, origin }) {
         <motion.div
           data-forge-transition=""
           aria-hidden="true"
-          className="fixed inset-0 z-[60] flex h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 text-center"
+          className="fixed inset-0 z-60 flex h-dvh flex-col items-center justify-center overflow-hidden px-6 text-center"
           style={{
             color: INK,
             backgroundColor: BASE,
@@ -90,7 +83,7 @@ function ForgeMark() {
   return (
     <div className="relative size-24 sm:size-32">
       <div
-        className="absolute -inset-[45%] rounded-full animate-forge-breathe"
+        className="absolute inset-[-45%] rounded-full animate-forge-breathe"
         style={{ backgroundImage: `radial-gradient(circle, rgba(255, 90, 31, 0.32), transparent 62%)` }}
       />
       <svg viewBox="0 0 100 100" className="absolute inset-0 size-full">

@@ -61,9 +61,7 @@ async function draftInto(user, request = 'A hackathon for 40 engineers') {
 }
 
 describe('EventWizard with ForgeAI', () => {
-  // A long walk (draft, then several wizard steps); the AI layer adds ~150 ms of jsdom work per
-  // draft, enough to brush the 5 s default when the whole suite runs in parallel.
-  it('fills the first step from a draft, and the venue name and capacity on the later ones', { timeout: 10_000 }, async () => {
+  it('fills the first step from a draft, and the venue name and capacity on the later ones', async () => {
     const user = userEvent.setup();
     server.use(aiStatus('org-1'), aiTask('org-1', 'draft', 'draft', draftResult));
     renderWizard();

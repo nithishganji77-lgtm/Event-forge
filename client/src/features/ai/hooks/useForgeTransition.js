@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// Long enough that a cached answer (~50 ms) doesn't flash the AI layer on and off; never used to
-// decide when a result exists. That is still the request's own settle.
+// Long enough that an instant answer (the status is cached for minutes) doesn't flash the AI layer
+// on and off; never used to decide anything. The request's own settle does that.
 export const MIN_VISIBLE_MS = 1000;
 
-// Visual state for the draft hand-off, kept apart from the request state on purpose: the mutation
-// owns data and errors, this only owns whether the AI layer is up.
+// Whether ForgeAI's opening layer is up, kept apart from request state on purpose: the query owns
+// the answer, this only owns the visual.
 //
-//   idle -> processing (begin) -> done (settle, after at least MIN_VISIBLE_MS)
+//   begin(element) -> processing, until settle() and at least MIN_VISIBLE_MS have both passed
 //
-// `origin` is where the layer opens from: the centre of the button that started it, plus the radius
-// that reaches the farthest viewport corner, so the wipe always covers the screen.
+// `origin` is where the layer opens from: the centre of the element that started it, plus the
+// radius that reaches the farthest viewport corner, so the wipe always covers the screen.
 export function useForgeTransition() {
-  const [phase, setPhase] = useState('idle');
-  const [outcome, setOutcome] = useState(null);
+  const [processing, setProcessing] = useState(false);
   const [origin, setOrigin] = useState(null);
   const startedAt = useRef(0);
   const timer = useRef(null);
@@ -32,19 +31,15 @@ export function useForgeTransition() {
       Math.hypot(window.innerWidth - x, window.innerHeight - y)
     );
     setOrigin({ x, y, radius });
-    setOutcome(null);
     startedAt.current = performance.now();
-    setPhase('processing');
+    setProcessing(true);
   }, []);
 
-  const settle = useCallback((result) => {
+  const settle = useCallback(() => {
     const wait = Math.max(0, MIN_VISIBLE_MS - (performance.now() - startedAt.current));
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      setOutcome(result);
-      setPhase('done');
-    }, wait);
+    timer.current = setTimeout(() => setProcessing(false), wait);
   }, []);
 
-  return { phase, outcome, origin, processing: phase === 'processing', begin, settle };
+  return { processing, origin, begin, settle };
 }
