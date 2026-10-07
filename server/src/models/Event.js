@@ -65,6 +65,12 @@ const eventSchema = new mongoose.Schema(
     venue: { type: venueSchema, default: () => ({}) },
     capacity: { type: Number, required: true, min: 1 },
     registrationDeadline: { type: Date, default: null },
+    // Internal reservation counter for registerForEvent's atomic capacity claim — never exposed
+    // to clients and never the source of truth for display (attachStats counts EventRegistration
+    // documents live, same as always). Kept in sync by registerForEvent/cancelRegistration and
+    // self-healed at boot by backfillRegisteredCounts() against the real EventRegistration count,
+    // so it can never silently drift from reality.
+    registeredCount: { type: Number, default: 0, min: 0 },
 
     organizers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

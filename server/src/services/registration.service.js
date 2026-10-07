@@ -1,4 +1,5 @@
 import { EventRegistration } from '../models/EventRegistration.js';
+import { Event } from '../models/Event.js';
 import { EVENT_STATUS, REGISTRATION_STATUS, ATTENDANCE_STATUS } from '../constants/eventStatus.js';
 import { computeDisplayStatus } from '../utils/eventStatus.js';
 import { attachStats } from './event.service.js';
@@ -18,14 +19,15 @@ export async function registerForEvent(event, user) {
     throw ApiError.conflict('You are already registered for this event.');
   }
 
-  const registeredCount = await EventRegistration.countDocuments({
-    event: event._id,
-    status: REGISTRATION_STATUS.REGISTERED,
-  });
-  // Documented, accepted race: this count-then-write isn't atomic (no multi-doc transactions on
-  // a standalone Mongo instance, matching the codebase's existing no-transactions stance).
-  const resultStatus =
-    registeredCount < event.capacity ? REGISTRATION_STATUS.REGISTERED : REGISTRATION_STATUS.WAITLISTED;
+  // Atomic claim: Mongo guarantees single-document updates are applied atomically even without
+  // multi-document transactions, so this findOneAndUpdate is the actual capacity gate — not the
+  // count-then-write it replaces. Concurrent requests racing this same event document are
+  // serialized by the storage engine, so at most `capacity` of them can ever see a truthy result.
+  const claimed = await Event.findOneAndUpdate(
+    { _id: event._id, $expr: { $lt: ['$registeredCount', '$capacity'] } },
+    { $inc: { registeredCount: 1 } }
+  );
+  const resultStatus = claimed ? REGISTRATION_STATUS.REGISTERED : REGISTRATION_STATUS.WAITLISTED;
 
   if (existing) {
     existing.status = resultStatus;
@@ -58,6 +60,10 @@ export async function cancelRegistration(event, user) {
 
   let promoted = null;
   if (wasRegistered) {
+    // Freed a REGISTERED slot — release the claim so the next new registrant can take it too,
+    // not just whoever was already on the waitlist at this exact moment.
+    await Event.updateOne({ _id: event._id }, { $inc: { registeredCount: -1 } });
+
     promoted = await EventRegistration.findOne({
       event: event._id,
       status: REGISTRATION_STATUS.WAITLISTED,
@@ -65,6 +71,8 @@ export async function cancelRegistration(event, user) {
     if (promoted) {
       promoted.status = REGISTRATION_STATUS.REGISTERED;
       await promoted.save();
+      // Immediately re-claims the slot just released above on behalf of the promoted person.
+      await Event.updateOne({ _id: event._id }, { $inc: { registeredCount: 1 } });
     }
   }
 

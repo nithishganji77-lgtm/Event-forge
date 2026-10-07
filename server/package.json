@@ -14,6 +14,7 @@
     "lint": "eslint src",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
     "backfill:event-times": "node src/seed/backfillEventTimes.js",
+    "backfill:registered-counts": "node src/seed/backfillRegisteredCounts.js",
     "test:tz": "TZ=UTC npm test && TZ=America/Los_Angeles npm test"
   },
   "dependencies": {

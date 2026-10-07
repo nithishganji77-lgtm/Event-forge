@@ -41,6 +41,48 @@ describe('registerForEvent', () => {
     expect(firstReg.status).toBe('REGISTERED');
     expect(secondReg.status).toBe('WAITLISTED');
   });
+
+  it('never overbooks under real concurrent registration (capacity-race regression)', async () => {
+    const { organization, owner } = await makeOrg();
+    const event = await makePublishedEvent({ organization, createdBy: owner, overrides: { capacity: 3 } });
+    const users = await Promise.all(
+      Array.from({ length: 10 }, (_, i) => makeUser({ email: `racer${i}@example.com` }))
+    );
+
+    // All 10 requests start before any of them finish — the old count-then-write logic reads the
+    // same pre-burst count for every one of them and lets far more than `capacity` in as
+    // REGISTERED. The atomic findOneAndUpdate claim must cap it at exactly 3 regardless.
+    const results = await Promise.all(users.map((user) => registerForEvent(event, user)));
+
+    const registeredCount = results.filter((r) => r.status === 'REGISTERED').length;
+    const waitlistedCount = results.filter((r) => r.status === 'WAITLISTED').length;
+    expect(registeredCount).toBe(3);
+    expect(waitlistedCount).toBe(7);
+
+    // The reservation counter itself must agree with the real count of REGISTERED documents.
+    const actualRegistered = await EventRegistration.countDocuments({
+      event: event._id,
+      status: 'REGISTERED',
+    });
+    expect(actualRegistered).toBe(3);
+  });
+
+  it('frees the slot for a brand-new registrant after a cancellation, not just whoever is already waitlisted', async () => {
+    const { organization, owner } = await makeOrg();
+    const event = await makePublishedEvent({ organization, createdBy: owner, overrides: { capacity: 1 } });
+    const first = await makeUser({ email: 'first-cancel@example.com' });
+    const second = await makeUser({ email: 'second-new@example.com' });
+
+    const firstReg = await registerForEvent(event, first);
+    expect(firstReg.status).toBe('REGISTERED');
+
+    await cancelRegistration(event, first);
+
+    // Nobody was on the waitlist when `first` cancelled, so this is a genuinely new registration,
+    // not a promotion — it must still see the freed slot and land REGISTERED.
+    const secondReg = await registerForEvent(event, second);
+    expect(secondReg.status).toBe('REGISTERED');
+  });
 });
 
 describe('cancel-then-re-register (non-partial unique index regression)', () => {
