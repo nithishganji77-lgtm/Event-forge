@@ -133,6 +133,35 @@ set — no code changes required either way (see "Adding Cloudinary" below for t
    new upload goes to Cloudinary from that point on. Unset any of the three to fall back to local
    disk again.
 
+### Sending real email (Resend or SMTP)
+
+Without any of this configured, outgoing email (invites, password resets) just logs to the server
+console — fine for solo dev work, since every email still contains a real, clickable link. To
+actually deliver to real inboxes, `services/email.service.js` picks a provider in this order,
+restart required after changing any of it:
+
+**1. Resend** (`RESEND_API_KEY`) — if set, this wins over everything else. Quickest to set up, but
+on a free Resend account without a verified custom domain, Resend's sandbox mode can **only**
+deliver to the email address that owns the Resend account itself — sending to anyone else needs a
+verified domain.
+
+**2. SMTP** (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`) — used only if
+`RESEND_API_KEY` is unset. Works with any SMTP-compatible provider and, unlike Resend's sandbox,
+isn't limited to one recipient. Two ways to get credentials without owning a domain:
+- **Gmail**: turn on 2-Step Verification, generate an **App Password** (Google Account → Security
+  → 2-Step Verification → App passwords), and use `smtp.gmail.com` / port `587` / your Gmail
+  address / that app password.
+- **Brevo** (free tier, higher volume than Gmail): `smtp-relay.brevo.com` / port `587` / the SMTP
+  login and key from Settings → SMTP & API.
+
+**The one gotcha that looks like a bug but isn't**: an SMTP send can return a clean success
+(`accepted`, `250 OK, queued`) and still never actually arrive, if `SMTP_FROM` isn't a sender your
+provider has verified. The provider accepts it into its queue, then silently drops it afterward —
+there's no error anywhere in this app's own logs for that, since the provider itself doesn't report
+one back over SMTP. Fix: verify a sender you actually control with your provider (Brevo: Senders,
+Domains & Dedicated IPs → Senders → Add a Sender → click the confirmation email sent to that
+address — no DNS or domain ownership needed) and point `SMTP_FROM` at that exact verified address.
+
 ## Production deployment
 
 - Set `NODE_ENV=production`. The server refuses to boot with a weak/default/shared JWT secret in
