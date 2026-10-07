@@ -121,7 +121,7 @@ export const refresh = asyncHandler(async (req, res) => {
     throw ApiError.unauthorized('Session expired, please log in again');
   }
 
-  const accessToken = signAccessToken(user._id);
+  const accessToken = signAccessToken(user._id, user.refreshTokenVersion);
   const refreshToken = signRefreshToken(user._id, user.refreshTokenVersion);
   setAuthCookies(res, { accessToken, refreshToken });
 

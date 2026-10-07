@@ -2,8 +2,8 @@ import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
 import { config } from '../config/env.js';
 
-export function signAccessToken(userId) {
-  return jwt.sign({ sub: String(userId), jti: randomUUID() }, config.JWT_SECRET, {
+export function signAccessToken(userId, tokenVersion) {
+  return jwt.sign({ sub: String(userId), jti: randomUUID(), tokenVersion }, config.JWT_SECRET, {
     expiresIn: config.ACCESS_TOKEN_TTL,
   });
 }
@@ -26,7 +26,7 @@ export function verifyRefreshToken(token) {
 
 export function issueAuthTokens(user) {
   return {
-    accessToken: signAccessToken(user._id),
+    accessToken: signAccessToken(user._id, user.refreshTokenVersion),
     refreshToken: signRefreshToken(user._id, user.refreshTokenVersion),
   };
 }

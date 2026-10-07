@@ -82,6 +82,27 @@ describe('POST /api/v1/auth/register + /login + /refresh + /logout (live routes)
     expect(refreshAfterLogout.status).toBe(401);
   });
 
+  it('rejects a captured access token after logout, not just after it expires', async () => {
+    const agent = request.agent(app);
+
+    const registerRes = await agent.post('/api/v1/auth/register').send({
+      name: 'Stale Token User',
+      email: 'staletoken@example.com',
+      password: 'Test@1234',
+    });
+    const accessTokenCookie = registerRes.headers['set-cookie'].find((c) =>
+      c.startsWith('accessToken=')
+    );
+    expect(accessTokenCookie).toBeDefined();
+
+    await agent.post('/api/v1/auth/logout');
+
+    // Replay the pre-logout access token directly (bypassing the agent's own jar, which has
+    // already been cleared by logout's Set-Cookie) against a protected route.
+    const replayRes = await request(app).get('/api/v1/auth/me').set('Cookie', accessTokenCookie);
+    expect(replayRes.status).toBe(401);
+  });
+
   it('rejects registering the same email twice via the live route', async () => {
     await request(app).post('/api/v1/auth/register').send({
       name: 'First',

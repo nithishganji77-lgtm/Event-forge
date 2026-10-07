@@ -17,7 +17,7 @@ export const authenticate = asyncHandler(async (req, res, next) => {
   }
 
   const user = await User.findById(payload.sub);
-  if (!user || !user.isActive) {
+  if (!user || !user.isActive || payload.tokenVersion !== user.refreshTokenVersion) {
     throw ApiError.unauthorized();
   }
 
