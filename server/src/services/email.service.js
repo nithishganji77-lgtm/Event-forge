@@ -31,7 +31,8 @@ export async function sendEmail({ to, subject, text, html }) {
   }
 
   if (transporter) {
-    await transporter.sendMail({ from: config.SMTP_FROM, to, subject, text, html });
+    const info = await transporter.sendMail({ from: config.SMTP_FROM, to, subject, text, html });
+    logger.info({ to, subject, accepted: info.accepted, rejected: info.rejected, response: info.response }, '[email:smtp] send result');
     return { delivered: true, mode: 'smtp' };
   }
 
