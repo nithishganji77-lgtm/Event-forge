@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as authController from '../controllers/auth.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
-import { authLimiter } from '../middleware/rateLimiters.js';
+import { authLimiter, loginAccountLimiter, passwordResetAccountLimiter } from '../middleware/rateLimiters.js';
 import { validate } from '../middleware/validate.js';
 import {
   registerSchema,
@@ -14,7 +14,7 @@ import {
 const router = Router();
 
 router.post('/register', authLimiter, validate({ body: registerSchema }), authController.register);
-router.post('/login', authLimiter, validate({ body: loginSchema }), authController.login);
+router.post('/login', authLimiter, loginAccountLimiter, validate({ body: loginSchema }), authController.login);
 router.post('/google', authLimiter, validate({ body: googleAuthSchema }), authController.googleAuth);
 router.post('/logout', authenticate, authController.logout);
 router.post('/refresh', authLimiter, authController.refresh);
@@ -22,6 +22,7 @@ router.get('/me', authenticate, authController.me);
 router.post(
   '/forgot-password',
   authLimiter,
+  passwordResetAccountLimiter,
   validate({ body: forgotPasswordSchema }),
   authController.forgotPassword
 );

@@ -173,10 +173,18 @@ address — no DNS or domain ownership needed) and point `SMTP_FROM` at that exa
 - `sameSite` on the auth cookies automatically becomes `None` (from `Lax`) in production, which
   requires `Secure` — already conditioned on the same `NODE_ENV` check, so this only works over
   HTTPS. Plan for the app being served over HTTPS end-to-end before going live.
-- Set `TRUST_PROXY=1` when the API runs behind a reverse proxy (Render, Heroku, Railway, a load
-  balancer). Without it every request appears to come from the proxy's IP, so the per-IP rate
-  limits (20 logins / 15 min, 300 requests / 15 min) are shared by all users and lock everyone
-  out. Leave it at `0` when nothing sits in front of the app.
+- Set `TRUST_PROXY` to the number of proxies in front of the API: `1` behind Render, Heroku,
+  Railway or a load balancer, `2` when the frontend host also proxies `/api` to it (the Vercel ->
+  Render setup below). Without it every request appears to come from a proxy's IP, so the per-IP
+  rate limits (20 logins / 15 min, 300 requests / 15 min) are shared by all users and lock everyone
+  out. Leave it at `0` when nothing sits in front of the app. With `2`, someone calling the API
+  directly can forge their IP, so sign-in (10 failed tries / 15 min) and password reset (3 / hour)
+  are also limited per account, which a forged IP can't get around.
+- Deployed as: frontend on Vercel (root directory `client`), API on Render (root directory
+  `server`). `client/vercel.json` proxies `/api/*` to the Render service and `client/.env.production`
+  points the app at `/api/v1`, so the browser only talks to the Vercel domain and the auth cookies
+  are first-party; with the API on a different site they are third-party, and Safari (and every
+  iPhone browser) blocks them, so login would silently fail there.
 - If the frontend and backend end up on different registrable domains (e.g. a Vercel frontend and
   a Render backend), set `COOKIE_DOMAIN` accordingly and make sure `CLIENT_URL` lists every
   origin that should be allowed through CORS (comma-separated — see the table above).
