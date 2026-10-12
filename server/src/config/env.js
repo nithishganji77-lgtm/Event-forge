@@ -15,6 +15,11 @@ const envSchema = z.object({
   REFRESH_TOKEN_TTL_MS: z.coerce.number().default(7 * 24 * 60 * 60 * 1000),
 
   COOKIE_DOMAIN: z.string().optional(),
+  // How many reverse proxies sit in front of the app (Render, Heroku, Railway, a load balancer: 1).
+  // Behind a proxy every request otherwise comes from the proxy's IP, so the per-IP rate limits
+  // would be shared by all users. Leave 0 when nothing is in front, or clients could forge
+  // X-Forwarded-For to dodge the limits.
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),

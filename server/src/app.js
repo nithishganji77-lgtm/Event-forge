@@ -17,6 +17,8 @@ import apiRouter from './routes/index.js';
 
 const app = express();
 
+// Makes req.ip the real client behind a proxy, which is what the rate limiters key on.
+if (config.TRUST_PROXY > 0) app.set('trust proxy', config.TRUST_PROXY);
 app.disable('x-powered-by');
 app.use(
   helmet({

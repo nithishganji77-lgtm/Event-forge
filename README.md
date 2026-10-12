@@ -173,6 +173,10 @@ address — no DNS or domain ownership needed) and point `SMTP_FROM` at that exa
 - `sameSite` on the auth cookies automatically becomes `None` (from `Lax`) in production, which
   requires `Secure` — already conditioned on the same `NODE_ENV` check, so this only works over
   HTTPS. Plan for the app being served over HTTPS end-to-end before going live.
+- Set `TRUST_PROXY=1` when the API runs behind a reverse proxy (Render, Heroku, Railway, a load
+  balancer). Without it every request appears to come from the proxy's IP, so the per-IP rate
+  limits (20 logins / 15 min, 300 requests / 15 min) are shared by all users and lock everyone
+  out. Leave it at `0` when nothing sits in front of the app.
 - If the frontend and backend end up on different registrable domains (e.g. a Vercel frontend and
   a Render backend), set `COOKIE_DOMAIN` accordingly and make sure `CLIENT_URL` lists every
   origin that should be allowed through CORS (comma-separated — see the table above).
