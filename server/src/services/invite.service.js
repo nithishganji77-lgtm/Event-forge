@@ -9,7 +9,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { toSkipLimit } from '../utils/paginate.js';
 import { sendEmail } from './email.service.js';
 import { writeAuditLog } from './audit.service.js';
-import { config } from '../config/env.js';
+import { appUrl } from '../config/env.js';
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -18,7 +18,7 @@ function hashToken(rawToken) {
 }
 
 async function sendInviteEmail({ email, organizationName, inviterName, rawToken }) {
-  const acceptUrl = `${config.CLIENT_URL}/invites/accept?token=${rawToken}`;
+  const acceptUrl = `${appUrl}/invites/accept?token=${rawToken}`;
   await sendEmail({
     to: email,
     subject: `${inviterName} invited you to join ${organizationName} on EventForge`,

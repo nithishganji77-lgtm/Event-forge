@@ -18,7 +18,7 @@ import { sendEmail } from '../services/email.service.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendSuccess } from '../utils/ApiResponse.js';
 import { ApiError } from '../utils/ApiError.js';
-import { config } from '../config/env.js';
+import { appUrl, config } from '../config/env.js';
 
 export const register = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -144,7 +144,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   const result = await createPasswordResetToken(email);
 
   if (result) {
-    const resetUrl = `${config.CLIENT_URL}/reset-password?token=${result.rawToken}`;
+    const resetUrl = `${appUrl}/reset-password?token=${result.rawToken}`;
     await sendEmail({
       to: result.user.email,
       subject: 'Reset your EventForge password',

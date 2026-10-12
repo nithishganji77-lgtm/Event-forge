@@ -90,4 +90,18 @@ export const geminiConfigured = Boolean(config.GEMINI_API_KEY);
 // CLIENT_URL stays a single string (backward-compatible with every existing .env — a one-value
 // CLIENT_URL behaves identically to before); comma-separate it to allow more than one origin, e.g.
 // a deployed frontend plus a local dev client hitting the same API.
-export const clientOrigins = config.CLIENT_URL.split(',').map((s) => s.trim()).filter(Boolean);
+//
+// An origin never has a path, and browsers send it without a trailing slash, so one pasted with a
+// slash ("https://app.example/") is normalised rather than silently never matching.
+export function parseClientOrigins(value) {
+  return value
+    .split(',')
+    .map((s) => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+}
+
+export const clientOrigins = parseClientOrigins(config.CLIENT_URL);
+
+// Where links in emails (invites, password resets) point: the first CLIENT_URL entry, i.e. the real
+// site. With several origins listed, using the raw value would produce "https://a,http://b/invites/…".
+export const appUrl = clientOrigins[0];
