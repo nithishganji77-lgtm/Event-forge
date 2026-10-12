@@ -13,6 +13,8 @@ import { sanitizeData } from './middleware/sanitizeData.js';
 import { apiLimiter } from './middleware/rateLimiters.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { ApiError } from './utils/ApiError.js';
+import { ERROR_CODES } from './constants/errorCodes.js';
 import apiRouter from './routes/index.js';
 
 const app = express();
@@ -31,7 +33,10 @@ app.use(
     // present-but-mismatched Origin is rejected.
     origin: (origin, callback) => {
       if (!origin || clientOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error('Not allowed by CORS'));
+      // A browser never lets the page read this response (no CORS headers), so the actionable hint
+      // goes to the server log for whoever deployed it: usually a frontend missing from CLIENT_URL.
+      logger.warn({ origin }, 'Blocked a request from an origin not in CLIENT_URL (add it there if it is your frontend)');
+      return callback(new ApiError(403, ERROR_CODES.ORIGIN_NOT_ALLOWED, "This website isn't allowed to use the EventForge API."));
     },
     credentials: true,
   })
